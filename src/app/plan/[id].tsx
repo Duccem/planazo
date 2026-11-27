@@ -65,7 +65,7 @@ export default function PlanDetailScreen() {
 
           {plan.author ? (
             <View style={styles.row}>
-              <Avatar initial={plan.author.initial} color={plan.author.color} size={30} ring={colors.bg} />
+              <Avatar initial={plan.author.initial} color={plan.author.color} uri={plan.author.avatarUrl} size={30} ring={colors.bg} />
               <Txt variant="label" color={colors.mute} style={{ flex: 1 }}>
                 {plan.isPublic ? 'Compartido por' : 'Plan de'} <Txt variant="label">{plan.author.name}</Txt>
                 {plan.isPublic ? ` · ${plan.likes} me gusta` : ''}
@@ -98,7 +98,7 @@ export default function PlanDetailScreen() {
           {invitation && from ? (
             <View style={styles.invite}>
               <View style={styles.row}>
-                <Avatar initial={from.initial} color={from.color} size={34} ring={colors.indigo} />
+                <Avatar initial={from.initial} color={from.color} uri={from.avatarUrl} size={34} ring={colors.indigo} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="bodyStrong" color={colors.white}>
                     {from.name} te propone este plan
@@ -152,7 +152,7 @@ export default function PlanDetailScreen() {
                     const r = responseMeta[s.response];
                     return (
                       <View key={s.personId} style={[styles.listRow, i > 0 && styles.divider]}>
-                        <Avatar initial={s.person!.initial} color={s.person!.color} size={34} ring={colors.surface} />
+                        <Avatar initial={s.person!.initial} color={s.person!.color} uri={s.person!.avatarUrl} size={34} ring={colors.surface} />
                         <Txt variant="bodyStrong" style={{ flex: 1 }}>
                           {s.person!.name}
                         </Txt>

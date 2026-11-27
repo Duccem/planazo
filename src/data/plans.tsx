@@ -2,6 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 
+import { avatarUrl } from '@/lib/avatars';
 import type { Tables } from '@/lib/database.types';
 import { MAX_PHOTOS_PER_PLAN, type PickedPhoto, removePhotoFiles, signPhotoUrls, uploadPhoto } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
@@ -18,7 +19,7 @@ import type { Category, Invitation, Plan, PlanPhoto, PriceTier, Response } from 
  */
 
 const PLAN_COLUMNS =
-  'id, owner_id, title, description, category, cover, price, duration_label, place, is_public, likes_count, created_at, owner:profiles!plans_owner_id_fkey(id, name, color), photos:plan_photos(id, path, position, width, height)';
+  'id, owner_id, title, description, category, cover, price, duration_label, place, is_public, likes_count, created_at, owner:profiles!plans_owner_id_fkey(id, name, color, avatar_path), photos:plan_photos(id, path, position, width, height)';
 
 type PlanRow = Pick<
   Tables<'plans'>,
@@ -35,7 +36,7 @@ type PlanRow = Pick<
   | 'likes_count'
   | 'created_at'
 > & {
-  owner: Pick<Tables<'profiles'>, 'id' | 'name' | 'color'> | null;
+  owner: Pick<Tables<'profiles'>, 'id' | 'name' | 'color' | 'avatar_path'> | null;
   photos: Pick<Tables<'plan_photos'>, 'id' | 'path' | 'position' | 'width' | 'height'>[] | null;
 };
 
@@ -108,6 +109,7 @@ function toPlan(row: PlanRow, me: string): Plan {
           name: row.owner?.name ?? 'Alguien',
           initial: (row.owner?.name ?? 'A')[0].toUpperCase(),
           color: row.owner?.color ?? '#6B6890',
+          avatarUrl: avatarUrl(row.owner?.avatar_path),
         },
     photos: [...(row.photos ?? [])]
       .sort((a, b) => a.position - b.position)

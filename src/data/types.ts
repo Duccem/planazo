@@ -11,6 +11,8 @@ export type Person = {
   name: string;
   initial: string;
   color: string;
+  /** Profile picture; without one the avatar shows the initial on `color`. */
+  avatarUrl?: string;
   relation: Relation;
 };
 
@@ -21,6 +23,7 @@ export type Author = {
   name: string;
   initial: string;
   color: string;
+  avatarUrl?: string;
 };
 
 /**
@@ -99,6 +102,7 @@ export type Me = {
   name: string;
   initial: string;
   color: string;
+  avatarUrl?: string;
   email: string;
   /** ISO date the account was created. */
   memberSince: string;

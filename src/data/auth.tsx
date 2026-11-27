@@ -40,6 +40,7 @@ const googleMessages = {
   play_services: 'Necesitas Google Play Services actualizado para entrar con Google.',
   in_progress: 'Ya hay un inicio de sesión con Google en curso.',
   no_token: 'Google no devolvió tus credenciales. Inténtalo de nuevo.',
+  unavailable: 'El acceso con Google no está disponible en esta versión de la app.',
   unknown: 'No se pudo entrar con Google. Inténtalo de nuevo.',
 };
 

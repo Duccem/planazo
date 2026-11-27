@@ -3,6 +3,7 @@ import { randomUUID } from 'expo-crypto';
 import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 
+import { avatarUrl, type PickedAvatar, removeAvatarFile, uploadAvatar } from '@/lib/avatars';
 import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
@@ -33,6 +34,8 @@ type SocialActions = {
   removeWish: (id: string) => void;
   redeemCode: (code: string, relation: Relation) => Promise<Result & { name?: string }>;
   removeConnection: (personId: string) => Promise<Result>;
+  /** Replace my profile picture with a prepared image (see `pickAvatar`), or remove it with null. */
+  changeAvatar: (avatar: PickedAvatar | null) => Promise<Result>;
   refresh: () => Promise<void>;
 };
 
@@ -83,7 +86,7 @@ function UserSocialProvider({ userId, children }: { userId: string | undefined; 
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase
         .from('connections')
-        .select('relation, other:profiles!connections_other_id_fkey(id, name, color)')
+        .select('relation, other:profiles!connections_other_id_fkey(id, name, color, avatar_path)')
         .eq('user_id', userId)
         .order('created_at'),
       supabase.from('wishes').select('*').order('created_at', { ascending: false }),
@@ -99,6 +102,7 @@ function UserSocialProvider({ userId, children }: { userId: string | undefined; 
               name: c.other.name,
               initial: initial(c.other.name),
               color: c.other.color,
+              avatarUrl: avatarUrl(c.other.avatar_path),
               relation: c.relation,
             }))
         : prev.people,
@@ -224,6 +228,36 @@ function UserSocialProvider({ userId, children }: { userId: string | undefined; 
         await refresh();
         return { error: null };
       },
+
+      async changeAvatar(avatar) {
+        if (!userId) return { error: describe(null) };
+        const previous = stateRef.current.profile?.avatar_path ?? null;
+
+        let path: string | null = null;
+        if (avatar) {
+          const upload = await uploadAvatar(userId, avatar);
+          if (upload.error) {
+            console.warn('[avatar] upload', upload.error.message);
+            return { error: 'No se pudo subir la foto. Comprueba tu conexión e inténtalo de nuevo.' };
+          }
+          path = upload.path;
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ avatar_path: path })
+          .eq('id', userId)
+          .select()
+          .single();
+        if (error) {
+          if (path) void removeAvatarFile(path);
+          return { error: describe(error) };
+        }
+        setState((s) => ({ ...s, profile: data }));
+        // The old file is no longer referenced; a failed cleanup only leaves an orphan behind.
+        if (previous && previous !== path) void removeAvatarFile(previous);
+        return { error: null };
+      },
     };
   }, [userId, refresh]);
 
@@ -256,6 +290,7 @@ export function useMeFromServer(): Me {
       name,
       initial: initial(name),
       color: profile?.color ?? '#FF6B4A',
+      avatarUrl: avatarUrl(profile?.avatar_path),
       email,
       memberSince: user?.created_at ?? new Date().toISOString(),
       inviteCode: profile?.invite_code ?? '',

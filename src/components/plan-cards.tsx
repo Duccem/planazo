@@ -82,7 +82,7 @@ export function FeedCard({ plan }: { plan: Plan }) {
       <View style={styles.cardBody}>
         {plan.author ? (
           <View style={styles.row}>
-            <Avatar initial={plan.author.initial} color={plan.author.color} size={24} ring={colors.surface} />
+            <Avatar initial={plan.author.initial} color={plan.author.color} uri={plan.author.avatarUrl} size={24} ring={colors.surface} />
             <Txt variant="label" color={colors.mute} style={{ flex: 1 }} numberOfLines={1}>
               {plan.author.name} · {timeAgo(plan.createdAt)}
             </Txt>
@@ -195,7 +195,7 @@ export function InvitationCard({
   return (
     <Tap onPress={() => router.push(`/plan/${plan.id}`)} style={[styles.invite, wide ? { width: '100%' } : { width: 290 }]}>
       <View style={styles.row}>
-        {from ? <Avatar initial={from.initial} color={from.color} size={30} ring={colors.indigo} /> : null}
+        {from ? <Avatar initial={from.initial} color={from.color} uri={from.avatarUrl} size={30} ring={colors.indigo} /> : null}
         <Txt variant="label" color="#DCD8FF" style={{ flex: 1 }} numberOfLines={1}>
           <Txt variant="label" color={colors.white} style={{ fontFamily: fonts.bold }}>
             {from?.name ?? 'Alguien'}

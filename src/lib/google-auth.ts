@@ -1,9 +1,4 @@
-import {
-  GoogleSignin,
-  isCancelledResponse,
-  isErrorWithCode,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+import { TurboModuleRegistry } from 'react-native';
 
 /*
  * Native Google sign-in (Android Credential Manager / iOS Google Sign-In SDK).
@@ -11,26 +6,40 @@ import {
  *
  * webClientId must be the *Web* OAuth client: it is the audience of the ID token, and it is
  * the one configured in Supabase (Authentication → Providers → Google).
+ *
+ * The library is loaded lazily: importing it in a binary without its native module (Expo Go, or a
+ * development build made before it was added) throws at startup. This way only Google sign-in fails.
  */
-let configured = false;
+type GoogleSigninLib = typeof import('@react-native-google-signin/google-signin');
 
-function configure() {
-  if (configured) return;
-  GoogleSignin.configure({
+let lib: GoogleSigninLib | null | undefined;
+
+function load(): GoogleSigninLib | null {
+  if (lib !== undefined) return lib;
+  if (!TurboModuleRegistry.get('RNGoogleSignin')) {
+    console.warn('[google-auth] RNGoogleSignin is not in this binary. Make a new development build.');
+    lib = null;
+    return lib;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  lib = require('@react-native-google-signin/google-signin') as GoogleSigninLib;
+  lib.GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     scopes: ['email', 'profile'],
   });
-  configured = true;
+  return lib;
 }
 
 export type GoogleTokenResult =
   | { type: 'success'; idToken: string }
   | { type: 'cancelled' }
-  | { type: 'error'; code: 'play_services' | 'in_progress' | 'no_token' | 'unknown' };
+  | { type: 'error'; code: 'play_services' | 'in_progress' | 'no_token' | 'unavailable' | 'unknown' };
 
 export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
-  configure();
+  const google = load();
+  if (!google) return { type: 'error', code: 'unavailable' };
+  const { GoogleSignin, isCancelledResponse, isErrorWithCode, statusCodes } = google;
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
@@ -51,9 +60,10 @@ export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
 
 /** Forget the Google account so the next sign-in shows the account picker again. */
 export async function signOutGoogle() {
+  const google = load();
+  if (!google) return;
   try {
-    configure();
-    if (GoogleSignin.hasPreviousSignIn()) await GoogleSignin.signOut();
+    if (google.GoogleSignin.hasPreviousSignIn()) await google.GoogleSignin.signOut();
   } catch {
     // Not signed in with Google: nothing to clear.
   }

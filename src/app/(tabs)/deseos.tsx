@@ -50,7 +50,7 @@ export default function WishesScreen() {
       <View style={styles.summary}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <AvatarStack
-            people={[{ id: 'me', initial: me.initial, color: me.color }, ...(partner ? [partner] : [])]}
+            people={[{ id: 'me', initial: me.initial, color: me.color, avatarUrl: me.avatarUrl }, ...(partner ? [partner] : [])]}
             size={36}
             ring={colors.indigo}
           />

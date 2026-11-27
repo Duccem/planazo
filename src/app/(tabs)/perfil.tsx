@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Alert, Platform, Share, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Platform, Share, StyleSheet, View } from 'react-native';
 
 import { TabScreen } from '@/components/screen';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -10,6 +11,7 @@ import { useAuth } from '@/data/auth';
 import { useSocialLoading } from '@/data/social';
 import { useActions, useMe, useMyPlans, usePeople, useWishes } from '@/data/store';
 import type { Person } from '@/data/types';
+import { type PickedAvatar, pickAvatar } from '@/lib/avatars';
 import { radius, space } from '@/theme/tokens';
 import { makeStyles, useColors } from '@/theme/theme';
 
@@ -23,7 +25,44 @@ export default function ProfileScreen() {
   const { scheduled, someday, done } = useMyPlans();
   const wishes = useWishes();
   const loading = useSocialLoading();
-  const { removeConnection } = useActions();
+  const { removeConnection, changeAvatar } = useActions();
+  // Local file shown while the new picture uploads.
+  const [uploadingUri, setUploadingUri] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const saveAvatar = async (avatar: PickedAvatar | null) => {
+    setBusy(true);
+    setUploadingUri(avatar?.uri ?? null);
+    const { error } = await changeAvatar(avatar);
+    setBusy(false);
+    setUploadingUri(null);
+    if (error) Alert.alert('No se pudo cambiar tu foto', error);
+  };
+
+  const chooseAvatar = async () => {
+    let avatar: PickedAvatar | null;
+    try {
+      avatar = await pickAvatar();
+    } catch {
+      Alert.alert('No se pudieron abrir tus fotos', 'Revisa los permisos de la app e inténtalo de nuevo.');
+      return;
+    }
+    if (avatar) await saveAvatar(avatar);
+  };
+
+  const editAvatar = () => {
+    if (busy) return;
+    // react-native-web's Alert has no buttons.
+    if (!me.avatarUrl || Platform.OS === 'web') {
+      void chooseAvatar();
+      return;
+    }
+    Alert.alert('Foto de perfil', undefined, [
+      { text: 'Elegir otra foto', onPress: () => void chooseAvatar() },
+      { text: 'Quitar foto', style: 'destructive', onPress: () => void saveAvatar(null) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
   const partner = people.find((p) => p.relation === 'pareja');
   const friends = people.filter((p) => p.relation === 'amigo');
 
@@ -31,7 +70,22 @@ export default function ProfileScreen() {
     <TabScreen title="Perfil">
       {/* Me */}
       <View style={styles.meRow}>
-        <Avatar initial={me.initial} color={me.color} size={68} ring={colors.lilac} />
+        <Tap
+          onPress={editAvatar}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Cambiar foto de perfil"
+          style={styles.avatarButton}>
+          <Avatar initial={me.initial} color={me.color} uri={uploadingUri ?? me.avatarUrl} size={68} ring={colors.lilac} />
+          {busy ? (
+            <View style={styles.avatarBusy}>
+              <ActivityIndicator color={colors.white} />
+            </View>
+          ) : null}
+          <View style={styles.avatarBadge}>
+            <Icon name="camera" size={14} color={colors.white} strokeWidth={2.2} />
+          </View>
+        </Tap>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt variant="title" numberOfLines={1}>
             {me.name}
@@ -61,9 +115,15 @@ export default function ProfileScreen() {
           accessibilityHint="Opciones de la conexión con tu pareja"
           style={styles.couple}>
           <View style={styles.coupleAvatars}>
-            <Avatar initial={me.initial} color={me.color} size={44} ring={colors.indigo} />
+            <Avatar initial={me.initial} color={me.color} uri={me.avatarUrl} size={44} ring={colors.indigo} />
             <View style={{ marginLeft: -12 }}>
-              <Avatar initial={partner.initial} color={partner.color} size={44} ring={colors.indigo} />
+              <Avatar
+                initial={partner.initial}
+                color={partner.color}
+                uri={partner.avatarUrl}
+                size={44}
+                ring={colors.indigo}
+              />
             </View>
           </View>
           <View style={{ flex: 1, gap: 2 }}>
@@ -106,7 +166,7 @@ export default function ProfileScreen() {
                 accessibilityRole="button"
                 accessibilityHint="Opciones de esta conexión"
                 style={[styles.listRow, i > 0 && styles.divider]}>
-                <Avatar initial={f.initial} color={f.color} size={36} ring={colors.surface} />
+                <Avatar initial={f.initial} color={f.color} uri={f.avatarUrl} size={36} ring={colors.surface} />
                 <Txt variant="bodyStrong" style={{ flex: 1 }}>
                   {f.name}
                 </Txt>
@@ -245,6 +305,27 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 const useStyles = makeStyles((colors) => ({
   meRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  avatarButton: { width: 68, height: 68 },
+  avatarBusy: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 34,
+    backgroundColor: 'rgba(23, 18, 61, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.indigo,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stats: { flexDirection: 'row', gap: space.sm },
   stat: {
     flex: 1,

@@ -2,7 +2,7 @@
 export type GoogleTokenResult =
   | { type: 'success'; idToken: string }
   | { type: 'cancelled' }
-  | { type: 'error'; code: 'play_services' | 'in_progress' | 'no_token' | 'unknown' };
+  | { type: 'error'; code: 'play_services' | 'in_progress' | 'no_token' | 'unavailable' | 'unknown' };
 
 export async function getGoogleIdToken(): Promise<GoogleTokenResult> {
   return { type: 'error', code: 'unknown' };

@@ -74,7 +74,7 @@ export default function SendSheet() {
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on, disabled: !!already }}
                   style={[styles.row, i > 0 && styles.divider]}>
-                  <Avatar initial={p.initial} color={p.color} size={38} ring={colors.surface} />
+                  <Avatar initial={p.initial} color={p.color} uri={p.avatarUrl} size={38} ring={colors.surface} />
                   <Txt variant="bodyStrong" style={{ flex: 1 }}>
                     {p.name}
                   </Txt>

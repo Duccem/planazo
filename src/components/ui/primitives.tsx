@@ -1,9 +1,11 @@
+import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   type PressableProps,
   type StyleProp,
+  StyleSheet,
   TextInput,
   type TextInputProps,
   View,
@@ -189,11 +191,14 @@ export function Avatar({
   color,
   size = 32,
   ring,
+  uri,
 }: {
   initial: string;
   color: string;
   size?: number;
   ring?: string;
+  /** Profile picture. The initial stays underneath while it loads (or if it fails). */
+  uri?: string;
 }) {
   const colors = useColors();
   ring ??= colors.bg;
@@ -209,6 +214,7 @@ export function Avatar({
         borderColor: ring,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}>
       <Txt
         variant="label"
@@ -216,6 +222,17 @@ export function Avatar({
         style={{ fontFamily: fonts.bold, fontSize: size * 0.4, lineHeight: size * 0.5 }}>
         {initial}
       </Txt>
+      {uri ? (
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={150}
+          cachePolicy="memory-disk"
+          recyclingKey={uri}
+          accessibilityIgnoresInvertColors
+        />
+      ) : null}
     </View>
   );
 }
@@ -225,7 +242,7 @@ export function AvatarStack({
   size = 30,
   ring,
 }: {
-  people: { initial: string; color: string; id: string }[];
+  people: { initial: string; color: string; id: string; avatarUrl?: string }[];
   size?: number;
   ring?: string;
 }) {
@@ -233,7 +250,7 @@ export function AvatarStack({
     <View style={{ flexDirection: 'row' }}>
       {people.map((p, i) => (
         <View key={p.id} style={{ marginLeft: i === 0 ? 0 : -size * 0.3 }}>
-          <Avatar initial={p.initial} color={p.color} size={size} ring={ring} />
+          <Avatar initial={p.initial} color={p.color} uri={p.avatarUrl} size={size} ring={ring} />
         </View>
       ))}
     </View>

@@ -2,6 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { launchImageLibraryAsync } from 'expo-image-picker';
 
+import { base64ToBytes } from './base64';
 import { supabase } from './supabase';
 
 export const PHOTO_BUCKET = 'plan-photos';
@@ -11,7 +12,8 @@ export const MAX_PHOTOS_PER_PLAN = 10;
 const SIGNED_URL_TTL = 60 * 60;
 const MAX_SIDE = 1600;
 
-export type PickedPhoto = { uri: string; width: number; height: number };
+/** `uri` is a local file for previews; `base64` is the JPEG that gets uploaded. */
+export type PickedPhoto = { uri: string; base64: string; width: number; height: number };
 
 /**
  * Opens the system photo picker and returns the chosen photos, already downscaled to at most
@@ -36,8 +38,9 @@ export async function pickPhotos(limit: number): Promise<PickedPhoto[]> {
         context = context.resize(landscape ? { width: MAX_SIDE } : { height: MAX_SIDE });
       }
       const image = await context.renderAsync();
-      const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
-      return { uri: saved.uri, width: saved.width, height: saved.height };
+      const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+      if (!saved.base64) throw new Error('image_encode_failed');
+      return { uri: saved.uri, base64: saved.base64, width: saved.width, height: saved.height };
     }),
   );
 }
@@ -46,7 +49,7 @@ export async function pickPhotos(limit: number): Promise<PickedPhoto[]> {
 export async function uploadPhoto(planId: string, photo: PickedPhoto) {
   const id = randomUUID();
   const path = `${planId}/${id}.jpg`;
-  const body = await fetch(photo.uri).then((r) => r.arrayBuffer());
+  const body = base64ToBytes(photo.base64);
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
     .upload(path, body, { contentType: 'image/jpeg', upsert: false });
