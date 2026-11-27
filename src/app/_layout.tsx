@@ -10,13 +10,16 @@ import { DarkTheme, DefaultTheme, type NativeStackNavigationOptions, Stack, Them
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AnimatedSplash } from '@/components/animated-splash';
 import { StoreProvider } from '@/data/store';
 import { ThemeProvider, useTheme } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
+// The JS overlay starts on the same frame as the native splash, so swap without a fade.
+SplashScreen.setOptions({ duration: 0, fade: false });
 
 export const unstable_settings = { anchor: '(tabs)' };
 
@@ -39,9 +42,10 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
+  const [showSplash, setShowSplash] = useState(true);
+  // Hide the native splash only once the animated overlay is on screen, so nothing flashes.
+  const hideNativeSplash = useCallback(() => SplashScreen.hide(), []);
+  const finishSplash = useCallback(() => setShowSplash(false), []);
 
   if (!loaded && !error) return null;
 
@@ -52,6 +56,7 @@ export default function RootLayout() {
           <AppStack />
         </StoreProvider>
       </ThemeProvider>
+      {showSplash && <AnimatedSplash onReady={hideNativeSplash} onFinish={finishSplash} />}
     </GestureHandlerRootView>
   );
 }
