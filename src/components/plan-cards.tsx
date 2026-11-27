@@ -76,7 +76,7 @@ export function FeedCard({ plan }: { plan: Plan }) {
       <View>
         <Cover cover={plan.cover} photo={plan.photos[0]} height={170} />
         <View style={styles.coverChips}>
-          <Chip label={`${cat.emoji} ${cat.label}`} tone="plain" />
+          <Chip emoji={cat.emoji} label={cat.label} tone="plain" />
         </View>
       </View>
       <View style={styles.cardBody}>

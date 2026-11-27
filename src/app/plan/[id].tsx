@@ -55,7 +55,7 @@ export default function PlanDetailScreen() {
 
         <View style={styles.sheet}>
           <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
-            <Chip label={`${cat.emoji} ${cat.label}`} />
+            <Chip emoji={cat.emoji} label={cat.label} />
             {plan.date && !plan.done ? <Chip label={relativeDay(plan.date)} tone="sun" icon="calendar" /> : null}
             {plan.done ? <Chip label="Hecho" tone="mint" icon="check" /> : null}
             {plan.isPublic && !isCommunity ? <Chip label="En la comunidad" tone="plain" icon="globe" /> : null}

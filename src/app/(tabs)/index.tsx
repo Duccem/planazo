@@ -187,11 +187,12 @@ function Header() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: space.sm, paddingHorizontal: GUTTER }}>
-          <Chip label="✨ Para ti" tone="plain" selected={category === null} onPress={() => setCategory(null)} />
+          <Chip emoji="✨" label="Para ti" tone="plain" selected={category === null} onPress={() => setCategory(null)} />
           {categoryList.map((c) => (
             <Chip
               key={c}
-              label={`${categories[c].emoji} ${categories[c].label}`}
+              emoji={categories[c].emoji}
+              label={categories[c].label}
               tone="plain"
               selected={category === c}
               onPress={() => setCategory(c)}

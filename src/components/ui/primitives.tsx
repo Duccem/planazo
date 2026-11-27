@@ -6,6 +6,7 @@ import {
   type PressableProps,
   type StyleProp,
   StyleSheet,
+  Text,
   TextInput,
   type TextInputProps,
   View,
@@ -145,12 +146,18 @@ export function Chip({
   label,
   tone = 'indigo',
   icon,
+  emoji,
   selected,
   onPress,
 }: {
   label: string;
   tone?: ChipTone;
   icon?: IconName;
+  /**
+   * Shown before the label in its own system-font text. Emoji with a variation selector (🛋️, 🏕️)
+   * mixed into the custom font are measured too narrow on Android and the label gets cut off.
+   */
+  emoji?: string;
   selected?: boolean;
   onPress?: () => void;
 }) {
@@ -160,7 +167,8 @@ export function Chip({
   const content = (
     <>
       {icon ? <Icon name={icon} size={13} color={t.fg} strokeWidth={2.4} /> : null}
-      <Txt variant="label" color={t.fg} style={{ fontSize: 12.5 }}>
+      {emoji ? <Text style={styles.chipEmoji}>{emoji}</Text> : null}
+      <Txt variant="label" color={t.fg} numberOfLines={1} style={{ fontSize: 12.5 }}>
         {label}
       </Txt>
     </>
@@ -481,6 +489,7 @@ const useStyles = makeStyles((colors) => ({
     borderRadius: radius.pill,
   },
   chipTap: { paddingHorizontal: 14, paddingVertical: 8 },
+  chipEmoji: { fontSize: 13, lineHeight: 17 },
   segmented: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
