@@ -36,7 +36,7 @@ export function NextPlanCard({ plan }: { plan: Plan }) {
   const yes = shared.filter((s) => s.response === 'si').length;
   return (
     <Tap onPress={() => router.push(`/plan/${plan.id}`)} style={styles.card}>
-      <Cover cover={plan.cover} height={130} />
+      <Cover cover={plan.cover} photo={plan.photos[0]} height={130} />
       <View style={styles.cardBody}>
         <View style={styles.rowBetween}>
           <Txt variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>
@@ -74,7 +74,7 @@ export function FeedCard({ plan }: { plan: Plan }) {
   return (
     <Tap onPress={() => router.push(`/plan/${plan.id}`)} style={styles.card}>
       <View>
-        <Cover cover={plan.cover} height={170} />
+        <Cover cover={plan.cover} photo={plan.photos[0]} height={170} />
         <View style={styles.coverChips}>
           <Chip label={`${cat.emoji} ${cat.label}`} tone="plain" />
         </View>
@@ -145,7 +145,7 @@ export function PlanRow({ plan }: { plan: Plan }) {
   const shared = useSharedPeople(plan);
   return (
     <Tap onPress={() => router.push(`/plan/${plan.id}`)} style={styles.rowCard}>
-      <Cover cover={plan.cover} height={76} radius={16} style={{ width: 76 }} />
+      <Cover cover={plan.cover} photo={plan.photos[0]} height={76} radius={16} style={{ width: 76 }} />
       <View style={{ flex: 1, gap: 4 }}>
         <Txt variant="bodyStrong" numberOfLines={1}>
           {plan.title}
@@ -204,7 +204,7 @@ export function InvitationCard({
         </Txt>
       </View>
       <View style={[styles.row, { gap: space.md }]}>
-        <Cover cover={plan.cover} height={56} radius={14} style={{ width: 56 }} />
+        <Cover cover={plan.cover} photo={plan.photos[0]} height={56} radius={14} style={{ width: 56 }} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt variant="bodyStrong" color={colors.white} numberOfLines={1}>
             {plan.title}

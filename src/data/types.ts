@@ -29,9 +29,23 @@ export type Author = {
  * - a community plan in the feed (author set)
  * - a plan someone sent you (see Invitation)
  */
+export type PlanPhoto = {
+  id: string;
+  /** Storage path `{plan_id}/{photo_id}.jpg`; stable, so it doubles as the image cache key. */
+  path: string;
+  /** Signed URL (or a local file URI right after picking, until it's uploaded). */
+  url?: string;
+  width?: number;
+  height?: number;
+  /** Still uploading. */
+  pending?: boolean;
+};
+
 export type Plan = {
   id: string;
   ownerId: string;
+  /** In display order; the first one is the cover. Empty means the illustrated cover. */
+  photos: PlanPhoto[];
   title: string;
   description: string;
   category: Category;

@@ -1,11 +1,12 @@
+import { Image } from 'expo-image';
 import { useId } from 'react';
-import { type StyleProp, View, type ViewStyle } from 'react-native';
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-import type { CoverKey } from '@/data/types';
+import type { CoverKey, PlanPhoto } from '@/data/types';
 
 // Illustrated "scene" covers from the design concept: gradient sky, a sun and two hills.
-// Stand-ins for real photos until there is a backend.
+// Used when a plan has no photos, and as the placeholder while a photo loads.
 const palettes: Record<CoverKey, [string, string, string, string, string]> = {
   sunset: ['#FFB199', '#FF6B4A', '#FFE08A', '#D94C2F', '#3F2FD6'],
   sea: ['#8EC5FF', '#FFD29A', '#FFF3C4', '#3F8FD6', '#2A1FA3'],
@@ -17,34 +18,59 @@ const palettes: Record<CoverKey, [string, string, string, string, string]> = {
   candy: ['#FFD6EC', '#C9B8FF', '#FFFFFF', '#9C86F5', '#3F2FD6'],
 };
 
+/** A plan's cover: its first photo when it has one, otherwise the illustrated scene. */
 export function Cover({
   cover,
+  photo,
   height = 120,
   radius = 0,
   style,
 }: {
   cover: CoverKey;
+  /** The plan's first photo, if any. */
+  photo?: PlanPhoto;
   height?: number;
   radius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  return (
+    <View style={[{ height, borderRadius: radius, overflow: 'hidden' }, style]}>
+      <Scene cover={cover} />
+      {photo?.url ? <Photo photo={photo} /> : null}
+    </View>
+  );
+}
+
+/** A plan photo filling its parent. Cached by storage path, so re-signed URLs don't re-download. */
+export function Photo({ photo, contentFit = 'cover' }: { photo: PlanPhoto; contentFit?: 'cover' | 'contain' }) {
+  return (
+    <Image
+      source={photo.path ? { uri: photo.url, cacheKey: photo.path } : { uri: photo.url }}
+      style={StyleSheet.absoluteFill}
+      contentFit={contentFit}
+      transition={200}
+      cachePolicy="memory-disk"
+      accessibilityIgnoresInvertColors
+    />
+  );
+}
+
+function Scene({ cover }: { cover: CoverKey }) {
   const [a, b, sun, h1, h2] = palettes[cover];
   const gid = `g${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const h = 120;
   return (
-    <View style={[{ height, borderRadius: radius, overflow: 'hidden' }, style]}>
-      <Svg width="100%" height="100%" viewBox={`0 0 240 ${h}`} preserveAspectRatio="xMidYMax slice">
-        <Defs>
-          <LinearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={a} />
-            <Stop offset="1" stopColor={b} />
-          </LinearGradient>
-        </Defs>
-        <Rect width={240} height={h} fill={`url(#${gid})`} />
-        <Circle cx={168} cy={h * 0.48} r={h * 0.2} fill={sun} />
-        <Path d={`M0 ${h * 0.7} Q60 ${h * 0.45} 120 ${h * 0.66} T240 ${h * 0.6} V${h} H0z`} fill={h1} />
-        <Path d={`M0 ${h * 0.86} Q80 ${h * 0.7} 150 ${h * 0.84} T240 ${h * 0.8} V${h} H0z`} fill={h2} />
-      </Svg>
-    </View>
+    <Svg width="100%" height="100%" viewBox={`0 0 240 ${h}`} preserveAspectRatio="xMidYMax slice">
+      <Defs>
+        <LinearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={a} />
+          <Stop offset="1" stopColor={b} />
+        </LinearGradient>
+      </Defs>
+      <Rect width={240} height={h} fill={`url(#${gid})`} />
+      <Circle cx={168} cy={h * 0.48} r={h * 0.2} fill={sun} />
+      <Path d={`M0 ${h * 0.7} Q60 ${h * 0.45} 120 ${h * 0.66} T240 ${h * 0.6} V${h} H0z`} fill={h1} />
+      <Path d={`M0 ${h * 0.86} Q80 ${h * 0.7} 150 ${h * 0.84} T240 ${h * 0.8} V${h} H0z`} fill={h2} />
+    </Svg>
   );
 }

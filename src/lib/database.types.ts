@@ -179,6 +179,54 @@ export type Database = {
           },
         ]
       }
+      plan_photos: {
+        Row: {
+          created_at: string
+          created_by: string
+          height: number | null
+          id: string
+          path: string
+          plan_id: string
+          position: number
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          height?: number | null
+          id?: string
+          path: string
+          plan_id: string
+          position?: number
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          height?: number | null
+          id?: string
+          path?: string
+          plan_id?: string
+          position?: number
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_photos_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           category: Database["public"]["Enums"]["plan_category"]

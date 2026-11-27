@@ -3,6 +3,7 @@ import { ScrollView, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { planWhen } from '@/components/plan-cards';
+import { PlanPhotos } from '@/components/plan-photos';
 import { Cover } from '@/components/ui/cover';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Avatar, Button, Chip, EmptyState, IconButton, Tap } from '@/components/ui/primitives';
@@ -50,7 +51,7 @@ export default function PlanDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: space.xxl }}>
-        <Cover cover={plan.cover} height={260 + insets.top} />
+        <Cover cover={plan.cover} photo={plan.photos[0]} height={260 + insets.top} />
 
         <View style={styles.sheet}>
           <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
@@ -89,6 +90,9 @@ export default function PlanDetailScreen() {
               </View>
             ))}
           </View>
+
+          {/* Photos: anyone who sees the plan sees them; only its creator edits them. */}
+          <PlanPhotos plan={plan} canEdit={!plan.author} />
 
           {/* Invitation from someone */}
           {invitation && from ? (
