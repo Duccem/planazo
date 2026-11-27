@@ -146,6 +146,38 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          connections: boolean
+          invitation_responses: boolean
+          invitations: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connections?: boolean
+          invitation_responses?: boolean
+          invitations?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connections?: boolean
+          invitation_responses?: boolean
+          invitations?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_likes: {
         Row: {
           created_at: string

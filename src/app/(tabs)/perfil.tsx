@@ -213,7 +213,7 @@ export default function ProfileScreen() {
       <View style={styles.list}>
         {(
           [
-            ['bell', 'Notificaciones'],
+            ['bell', 'Notificaciones', () => router.push('/notificaciones')],
             ['globe', 'Privacidad y comunidad'],
             ['settings', 'Ajustes', () => router.push('/ajustes')],
             ['lock', 'Cerrar sesión', () => confirmSignOut(signOut)],

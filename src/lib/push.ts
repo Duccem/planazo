@@ -3,8 +3,8 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { type Href, router } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Linking, Platform } from 'react-native';
 
 import { supabase } from './supabase';
 
@@ -73,6 +73,67 @@ export async function unregisterPush(): Promise<void> {
   if (error) console.warn('[push] unregister_push_token', error.message);
 }
 
+/**
+ * What the OS lets Planazo do on this device.
+ * `blocked` = denied and the system won't show the prompt again (only Settings can fix it).
+ * `unavailable` = no remote push here (web, Expo Go on Android).
+ */
+export type PushPermission = 'granted' | 'undetermined' | 'blocked' | 'unavailable';
+
+async function readPermission(): Promise<PushPermission> {
+  if (Platform.OS === 'android' && isRunningInExpoGo()) return 'unavailable';
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  if (status === 'granted') return 'granted';
+  return canAskAgain ? 'undetermined' : 'blocked';
+}
+
+/**
+ * Permission state for this device, refreshed when the app comes back to the foreground
+ * (e.g. after the user toggles it in the system settings). `enable` asks for it, or opens
+ * the system settings when the prompt can no longer be shown.
+ */
+export function usePushPermission() {
+  const [permission, setPermission] = useState<PushPermission | null>(null);
+  const last = useRef<PushPermission | null>(null);
+
+  const refresh = useCallback(async () => {
+    const next = await readPermission().catch((): PushPermission => 'unavailable');
+    // Turned on from the system settings while away: store this device's token now.
+    if (next === 'granted' && last.current !== null && last.current !== 'granted' && !registeredToken) {
+      register().catch((e) => console.warn('[push] register', e));
+    }
+    last.current = next;
+    setPermission(next);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    readPermission()
+      .catch((): PushPermission => 'unavailable')
+      .then((initial) => {
+        last.current = initial;
+        setPermission(initial);
+      });
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
+  const enable = useCallback(async () => {
+    const current = await refresh();
+    if (current === 'blocked') {
+      await Linking.openSettings();
+      return;
+    }
+    if (current !== 'undetermined') return;
+    await register().catch((e) => console.warn('[push] register', e));
+    await refresh();
+  }, [refresh]);
+
+  return { permission, enable, openSettings: () => Linking.openSettings() };
+}
+
 function open(response: Notifications.NotificationResponse | null) {
   if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
   const url = response.notification.request.content.data?.url;
@@ -88,11 +149,16 @@ export function usePushNotifications(signedIn: boolean) {
   useEffect(() => {
     if (!signedIn) return;
 
-    register().catch((e) => console.warn('[push] register', e));
+    // Expo Go on Android has no remote push: the token APIs throw there, so skip them.
+    const remotePush = !(Platform.OS === 'android' && isRunningInExpoGo());
+
+    if (remotePush) register().catch((e) => console.warn('[push] register', e));
     // The native token can rotate while the app runs; store the new Expo token.
-    const tokenSub = Notifications.addPushTokenListener(() => {
-      register().catch((e) => console.warn('[push] re-register', e));
-    });
+    const tokenSub = remotePush
+      ? Notifications.addPushTokenListener(() => {
+          register().catch((e) => console.warn('[push] re-register', e));
+        })
+      : null;
 
     let active = true;
     Notifications.getLastNotificationResponseAsync().then((response) => {
@@ -102,7 +168,7 @@ export function usePushNotifications(signedIn: boolean) {
 
     return () => {
       active = false;
-      tokenSub.remove();
+      tokenSub?.remove();
       responseSub.remove();
     };
   }, [signedIn]);

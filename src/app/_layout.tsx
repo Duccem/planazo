@@ -134,6 +134,7 @@ function AppStack() {
           <Stack.Screen name="nuevo-deseo" options={sheet} />
           <Stack.Screen name="codigo" options={sheet} />
           <Stack.Screen name="ajustes" />
+          <Stack.Screen name="notificaciones" />
         </Stack.Protected>
         {/* Without a session every route above redirects here. */}
         <Stack.Protected guard={!signedIn}>
