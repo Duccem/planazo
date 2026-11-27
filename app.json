@@ -8,9 +8,11 @@
     "scheme": "planazo",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.lumen.planazo"
     },
     "android": {
+      "package": "com.lumen.planazo",
       "adaptiveIcon": {
         "backgroundColor": "#3F2FD6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -46,11 +48,28 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.233554598651-c6nu36t016s18t958sa1go6fhjspr3fs"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "ba4efab6-044b-4901-9fa2-7d1c2b7a4639"
+      }
+    },
+    "owner": "ducen29"
   }
 }

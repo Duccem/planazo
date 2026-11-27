@@ -121,7 +121,7 @@ export default function SignUpScreen() {
       <FormNotice message={notice} />
       <Button label="Crear cuenta" disabled={!canSubmit} loading={submitting} onPress={submit} />
       <OrDivider />
-      <SocialButtons />
+      <SocialButtons onError={setError} />
     </AuthScreen>
   );
 }

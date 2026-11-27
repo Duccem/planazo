@@ -1,6 +1,7 @@
 import type { AuthError, Session } from '@supabase/supabase-js';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
+import { getGoogleIdToken, signOutGoogle } from '@/lib/google-auth';
 import { supabase } from '@/lib/supabase';
 
 type Result = { error: string | null };
@@ -12,6 +13,8 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<Result>;
   signUp: (name: string, email: string, password: string) => Promise<SignUpResult>;
+  /** Native Google sign-in. `error` is null on success and when the user cancels. */
+  signInWithGoogle: () => Promise<Result>;
   resetPassword: (email: string) => Promise<Result>;
   signOut: () => Promise<Result>;
 };
@@ -30,6 +33,14 @@ const messages: Record<string, string> = {
   over_request_rate_limit: 'Demasiados intentos. Espera un momento y vuelve a probar.',
   over_email_send_rate_limit: 'Hemos enviado demasiados correos. Espera unos minutos.',
   signup_disabled: 'El registro está desactivado por ahora.',
+  provider_disabled: 'El acceso con Google no está activado todavía.',
+};
+
+const googleMessages = {
+  play_services: 'Necesitas Google Play Services actualizado para entrar con Google.',
+  in_progress: 'Ya hay un inicio de sesión con Google en curso.',
+  no_token: 'Google no devolvió tus credenciales. Inténtalo de nuevo.',
+  unknown: 'No se pudo entrar con Google. Inténtalo de nuevo.',
 };
 
 function describe(error: AuthError | null): string | null {
@@ -83,12 +94,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Without a session the project requires email confirmation first.
         return { error: describe(error), needsConfirmation: !error && !data.session };
       },
+      signInWithGoogle: async () => {
+        const google = await getGoogleIdToken();
+        if (google.type === 'cancelled') return { error: null };
+        if (google.type === 'error') return { error: googleMessages[google.code] };
+        const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: google.idToken });
+        if (error) {
+          console.warn('[auth] Google signInWithIdToken', error.code, error.message);
+          await signOutGoogle();
+        }
+        return { error: describe(error) };
+      },
       resetPassword: async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
         return { error: describe(error) };
       },
       signOut: async () => {
-        const { error } = await supabase.auth.signOut();
+        const [{ error }] = await Promise.all([supabase.auth.signOut(), signOutGoogle()]);
         return { error: describe(error) };
       },
     }),

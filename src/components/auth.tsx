@@ -3,6 +3,7 @@ import { type ReactNode, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, type TextInputProps, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/data/auth';
 import { brand, fonts, GUTTER, radius, space } from '@/theme/tokens';
 import { makeStyles, useColors } from '@/theme/theme';
 
@@ -152,6 +153,7 @@ export function FormNotice({ message }: { message: string | null }) {
 export function OrDivider() {
   const colors = useColors();
   const styles = useStyles();
+  if (Platform.OS === 'web') return null; // no social sign-in on web
   return (
     <View style={styles.divider}>
       <View style={styles.dividerLine} />
@@ -163,13 +165,33 @@ export function OrDivider() {
   );
 }
 
-/** Social sign-in buttons. Not wired to Supabase yet. */
-export function SocialButtons() {
-  const soon = () => Alert.alert('Muy pronto', 'Por ahora entra con tu correo y contraseña.');
+/** Social sign-in buttons. Google is native (Android/iOS); Apple is not wired yet. */
+export function SocialButtons({ onError }: { onError: (message: string | null) => void }) {
+  const { signInWithGoogle } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const soon = () => Alert.alert('Muy pronto', 'Por ahora entra con tu correo o con Google.');
+
+  // On success the session changes and the root layout's guard opens the app.
+  const google = async () => {
+    setGoogleLoading(true);
+    onError(null);
+    const result = await signInWithGoogle();
+    setGoogleLoading(false);
+    onError(result.error);
+  };
+
+  if (Platform.OS === 'web') return null;
   return (
     <View style={{ flexDirection: 'row', gap: space.md }}>
-      {Platform.OS !== 'android' ? <Button label="Apple" tone="ghost" style={{ flex: 1 }} onPress={soon} /> : null}
-      <Button label="Google" tone="ghost" style={{ flex: 1 }} onPress={soon} />
+      {Platform.OS === 'ios' ? <Button label="Apple" tone="ghost" style={{ flex: 1 }} onPress={soon} /> : null}
+      <Button
+        label="Google"
+        tone="ghost"
+        style={{ flex: 1 }}
+        loading={googleLoading}
+        disabled={googleLoading}
+        onPress={google}
+      />
     </View>
   );
 }

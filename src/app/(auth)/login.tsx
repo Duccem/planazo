@@ -70,7 +70,7 @@ export default function LoginScreen() {
       <FormError message={error} />
       <Button label="Entrar" disabled={!canSubmit} loading={submitting} onPress={submit} />
       <OrDivider />
-      <SocialButtons />
+      <SocialButtons onError={setError} />
     </AuthScreen>
   );
 }
