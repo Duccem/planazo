@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplash } from '@/components/animated-splash';
@@ -28,13 +29,22 @@ if (!isRunningInExpoGo()) {
 
 export const unstable_settings = { anchor: '(tabs)' };
 
-const sheetOptions = (bg: string): NativeStackNavigationOptions => ({
-  presentation: 'formSheet',
-  sheetAllowedDetents: [0.75, 1],
-  sheetGrabberVisible: true,
-  sheetCornerRadius: 28,
-  contentStyle: { backgroundColor: bg },
-});
+/**
+ * Sheet routes. iOS uses the native form sheet with detents.
+ * Android uses a full-screen modal sliding up instead: react-native-screens 4.30's Android form
+ * sheet can stay off-screen after presenting (it only repositions once window insets are
+ * re-dispatched, e.g. after leaving and returning to the app).
+ */
+const sheetOptions = (bg: string): NativeStackNavigationOptions =>
+  Platform.OS === 'android'
+    ? { presentation: 'modal', animation: 'slide_from_bottom', contentStyle: { backgroundColor: bg } }
+    : {
+        presentation: 'formSheet',
+        sheetAllowedDetents: [0.75, 1],
+        sheetGrabberVisible: true,
+        sheetCornerRadius: 28,
+        contentStyle: { backgroundColor: bg },
+      };
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({

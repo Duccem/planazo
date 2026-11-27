@@ -26,10 +26,10 @@ export function Sheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
+    // On Android sheets are full-screen modals drawn edge-to-edge (see sheetOptions in the root
+    // layout): pad below the status bar, and let KeyboardAvoidingView lift the footer above the keyboard.
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior="padding">
+      <View style={[styles.header, Platform.OS === 'android' && { paddingTop: insets.top + space.md }]}>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt variant="title">{title}</Txt>
           {subtitle ? (
