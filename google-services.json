@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "233554598651",
+    "project_id": "planazo-516013",
+    "storage_bucket": "planazo-516013.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:233554598651:android:5148172ab5ffeeb90aae5e",
+        "android_client_info": {
+          "package_name": "com.lumen.planazo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "233554598651-au7l79n7iimna158qr9lr2nrvvisjq69.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxuMXhXn6sEDJ6hDTT6zaWBETzYk11h_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "233554598651-au7l79n7iimna158qr9lr2nrvvisjq69.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "233554598651-c6nu36t016s18t958sa1go6fhjspr3fs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.lumen.planazo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
