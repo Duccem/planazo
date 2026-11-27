@@ -5,6 +5,7 @@ import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/70
 import { PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans/800ExtraBold';
 import { Unbounded_600SemiBold } from '@expo-google-fonts/unbounded/600SemiBold';
 import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
+import { isRunningInExpoGo } from 'expo';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, type NativeStackNavigationOptions, Stack, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,7 +21,10 @@ import { ThemeProvider, useTheme } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
 // The JS overlay starts on the same frame as the native splash, so swap without a fade.
-SplashScreen.setOptions({ duration: 0, fade: false });
+// Expo Go doesn't support splash options (it warns and ignores them); development and release builds do.
+if (!isRunningInExpoGo()) {
+  SplashScreen.setOptions({ duration: 0, fade: false });
+}
 
 export const unstable_settings = { anchor: '(tabs)' };
 
