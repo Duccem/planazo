@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Alert, Platform, View } from 'react-native';
+import { Alert, Platform, Share, View } from 'react-native';
 
 import { TabScreen } from '@/components/screen';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -7,7 +7,9 @@ import { LogoMark } from '@/components/ui/logo';
 import { Avatar, Button, Chip, Tap } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
 import { useAuth } from '@/data/auth';
-import { useMe, useMyPlans, usePeople, useWishes } from '@/data/store';
+import { useSocialLoading } from '@/data/social';
+import { useActions, useMe, useMyPlans, usePeople, useWishes } from '@/data/store';
+import type { Person } from '@/data/types';
 import { radius, space } from '@/theme/tokens';
 import { makeStyles, useColors } from '@/theme/theme';
 
@@ -20,6 +22,8 @@ export default function ProfileScreen() {
   const people = usePeople();
   const { scheduled, someday, done } = useMyPlans();
   const wishes = useWishes();
+  const loading = useSocialLoading();
+  const { removeConnection } = useActions();
   const partner = people.find((p) => p.relation === 'pareja');
   const friends = people.filter((p) => p.relation === 'amigo');
 
@@ -51,7 +55,11 @@ export default function ProfileScreen() {
 
       {/* Partner */}
       {partner ? (
-        <View style={styles.couple}>
+        <Tap
+          onPress={() => confirmRemove(partner, removeConnection)}
+          accessibilityRole="button"
+          accessibilityHint="Opciones de la conexión con tu pareja"
+          style={styles.couple}>
           <View style={styles.coupleAvatars}>
             <Avatar initial={me.initial} color={me.color} size={44} ring={colors.indigo} />
             <View style={{ marginLeft: -12 }}>
@@ -67,7 +75,21 @@ export default function ProfileScreen() {
             </Txt>
           </View>
           <LogoMark size={34} color={colors.white} m3={colors.indigo} />
-        </View>
+        </Tap>
+      ) : !loading ? (
+        <Tap
+          onPress={() => router.push({ pathname: '/codigo', params: { relation: 'pareja' } })}
+          accessibilityRole="button"
+          style={[styles.couple, styles.coupleEmpty]}>
+          <LogoMark size={40} color={colors.indigo} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="heading">Conecta con tu pareja</Txt>
+            <Txt variant="caption" color={colors.mute}>
+              Compartid deseos y planes. Escribe su código o pásale el tuyo.
+            </Txt>
+          </View>
+          <Icon name="chevron" size={18} color={colors.faint} />
+        </Tap>
       ) : null}
 
       {/* Friends */}
@@ -75,17 +97,28 @@ export default function ProfileScreen() {
         <Txt variant="label" color={colors.mute}>
           AMIGOS · {friends.length}
         </Txt>
-        <View style={styles.list}>
-          {friends.map((f, i) => (
-            <View key={f.id} style={[styles.listRow, i > 0 && styles.divider]}>
-              <Avatar initial={f.initial} color={f.color} size={36} ring={colors.surface} />
-              <Txt variant="bodyStrong" style={{ flex: 1 }}>
-                {f.name}
-              </Txt>
-              <Chip label="Amigo" />
-            </View>
-          ))}
-        </View>
+        {friends.length ? (
+          <View style={styles.list}>
+            {friends.map((f, i) => (
+              <Tap
+                key={f.id}
+                onPress={() => confirmRemove(f, removeConnection)}
+                accessibilityRole="button"
+                accessibilityHint="Opciones de esta conexión"
+                style={[styles.listRow, i > 0 && styles.divider]}>
+                <Avatar initial={f.initial} color={f.color} size={36} ring={colors.surface} />
+                <Txt variant="bodyStrong" style={{ flex: 1 }}>
+                  {f.name}
+                </Txt>
+                <Chip label="Amigo" />
+              </Tap>
+            ))}
+          </View>
+        ) : !loading ? (
+          <Txt variant="caption" color={colors.mute}>
+            Aún no tienes amigos en Planazo. Pásales tu código para planear juntos.
+          </Txt>
+        ) : null}
       </View>
 
       {/* Invite */}
@@ -94,14 +127,25 @@ export default function ProfileScreen() {
           Tu código para invitar
         </Txt>
         <Txt variant="display" color={colors.indigo} align="center" style={{ letterSpacing: 1 }}>
-          {me.inviteCode}
+          {me.inviteCode || '····'}
         </Txt>
         <Txt variant="caption" color={colors.mute} align="center">
           Compártelo con tu pareja o amigos para planear juntos
         </Txt>
         <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.sm }}>
-          <Button label="Compartir enlace" icon="send" style={{ flex: 1 }} />
-          <Button label="Tengo un código" tone="soft" style={{ flex: 1 }} />
+          <Button
+            label="Compartir"
+            icon="send"
+            style={{ flex: 1 }}
+            disabled={!me.inviteCode}
+            onPress={() => shareCode(me.name, me.inviteCode)}
+          />
+          <Button
+            label="Tengo un código"
+            tone="soft"
+            style={{ flex: 1 }}
+            onPress={() => router.push('/codigo')}
+          />
         </View>
       </View>
 
@@ -134,6 +178,34 @@ const monthYear = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric'
 function memberSince(iso: string) {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? 'hoy' : monthYear.format(date).replace(' de ', ' ');
+}
+
+function shareCode(name: string, code: string) {
+  void Share.share({
+    message: `${name} te invita a Planazo para hacer planes juntos. Usa mi código: ${code}`,
+  });
+}
+
+function confirmRemove(person: Person, remove: (id: string) => Promise<{ error: string | null }>) {
+  const what = person.relation === 'pareja' ? 'tu pareja' : 'tus amigos';
+  const run = async () => {
+    const { error } = await remove(person.id);
+    if (error) Alert.alert('No se pudo eliminar', error);
+  };
+  if (Platform.OS === 'web') {
+    if (globalThis.confirm?.(`¿Quitar a ${person.name} de ${what}?`)) void run();
+    return;
+  }
+  Alert.alert(
+    person.name,
+    person.relation === 'pareja'
+      ? 'Si dejáis de estar conectados, dejaréis de ver los deseos del otro.'
+      : 'Dejaréis de poder enviaros planes.',
+    [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: `Quitar de ${what}`, style: 'destructive', onPress: () => void run() },
+    ],
+  );
 }
 
 /** The root layout's guard sends the user to the login once the session is gone. */
@@ -191,6 +263,7 @@ const useStyles = makeStyles((colors) => ({
     padding: space.lg,
   },
   coupleAvatars: { flexDirection: 'row' },
+  coupleEmpty: { backgroundColor: colors.lilac },
   list: { borderRadius: radius.lg, backgroundColor: colors.surface, overflow: 'hidden' },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md + 2, minHeight: 56 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },

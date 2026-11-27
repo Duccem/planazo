@@ -80,7 +80,7 @@ export default function NewWishSheet() {
       <View style={{ gap: space.sm + 2 }}>
         <FieldLabel>¿Para quién?</FieldLabel>
         <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
-          {OWNERS.map((o) => (
+          {OWNERS.filter((o) => o !== 'pareja' || partner).map((o) => (
             <Chip key={o} label={ownerLabel(o)} tone="plain" selected={o === owner} onPress={() => setOwner(o)} />
           ))}
         </View>

@@ -1,17 +1,21 @@
 import { createContext, type ReactNode, use, useMemo, useReducer } from 'react';
 
-import { useAuth } from './auth';
 import * as mock from './mock';
-import type { Invitation, Me, Person, Plan, Response, Wish } from './types';
+import {
+  useMeFromServer,
+  usePeopleFromServer,
+  useSocialActions,
+  useWishesFromServer,
+} from './social';
+import type { Invitation, Plan, Response } from './types';
 
-// In-memory app state seeded with sample data. Swap for a real backend later:
-// screens only talk to the hooks exported here.
+// Screens only talk to the hooks exported here.
+// - Profile, people (partner + friends) and wishes come from Supabase (see ./social).
+// - Plans and invitations are still in-memory sample data.
 
 type State = {
   plans: Plan[];
   invitations: Invitation[];
-  wishes: Wish[];
-  people: Person[];
 };
 
 type Action =
@@ -20,10 +24,7 @@ type Action =
   | { type: 'plan/remove'; id: string }
   | { type: 'plan/like'; id: string }
   | { type: 'plan/send'; id: string; personIds: string[] }
-  | { type: 'invitation/respond'; id: string; response: Response }
-  | { type: 'wish/add'; wish: Wish }
-  | { type: 'wish/update'; id: string; patch: Partial<Wish> }
-  | { type: 'wish/remove'; id: string };
+  | { type: 'invitation/respond'; id: string; response: Response };
 
 function mapPlan(state: State, id: string, fn: (p: Plan) => Plan): State {
   return { ...state, plans: state.plans.map((p) => (p.id === id ? fn(p) : p)) };
@@ -71,15 +72,6 @@ function reducer(state: State, action: Action): State {
           : p.sharedWith,
       }));
     }
-    case 'wish/add':
-      return { ...state, wishes: [action.wish, ...state.wishes] };
-    case 'wish/update':
-      return {
-        ...state,
-        wishes: state.wishes.map((w) => (w.id === action.id ? { ...w, ...action.patch } : w)),
-      };
-    case 'wish/remove':
-      return { ...state, wishes: state.wishes.filter((w) => w.id !== action.id) };
   }
 }
 
@@ -89,8 +81,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {
     plans: mock.plans,
     invitations: mock.invitations,
-    wishes: mock.wishes,
-    people: mock.people,
   });
   const value = useMemo(() => ({ state, dispatch }), [state]);
   return <StoreContext value={value}>{children}</StoreContext>;
@@ -112,8 +102,16 @@ export type NewPlanInput = Pick<
 
 export function useActions() {
   const { dispatch } = useStore();
+  const social = useSocialActions();
   return useMemo(
     () => ({
+      // Wishes and connections (Supabase)
+      addWish: social.addWish,
+      updateWish: social.updateWish,
+      removeWish: social.removeWish,
+      redeemCode: social.redeemCode,
+      removeConnection: social.removeConnection,
+      // Plans (in memory)
       addPlan(input: NewPlanInput) {
         const id = newId('p');
         dispatch({
@@ -133,52 +131,18 @@ export function useActions() {
       sendPlan: (id: string, personIds: string[]) => dispatch({ type: 'plan/send', id, personIds }),
       respond: (invitationId: string, response: Response) =>
         dispatch({ type: 'invitation/respond', id: invitationId, response }),
-      addWish(input: Pick<Wish, 'kind' | 'title' | 'note' | 'owner'>) {
-        dispatch({
-          type: 'wish/add',
-          wish: {
-            ...input,
-            id: newId('w'),
-            done: false,
-            progress: input.kind === 'meta' ? 0 : undefined,
-            addedBy: 'me',
-            createdAt: new Date().toISOString(),
-          },
-        });
-      },
-      updateWish: (id: string, patch: Partial<Wish>) => dispatch({ type: 'wish/update', id, patch }),
-      removeWish: (id: string) => dispatch({ type: 'wish/remove', id }),
     }),
-    [dispatch],
+    [dispatch, social],
   );
 }
 
 /* ---------- Selectors ---------- */
 
-/** The signed-in user, from the Supabase session. */
-export function useMe(): Me {
-  const user = useAuth().session?.user;
-  return useMemo(() => {
-    if (!user) return mock.me;
-    const email = user.email ?? '';
-    const fromMeta = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name.trim() : '';
-    const fromEmail = email.split('@')[0] ?? '';
-    const name = fromMeta || (fromEmail ? fromEmail[0].toUpperCase() + fromEmail.slice(1) : mock.me.name);
-    return {
-      id: user.id,
-      name,
-      initial: name[0]?.toUpperCase() ?? mock.me.initial,
-      color: mock.me.color,
-      email,
-      memberSince: user.created_at,
-      // TODO(invites): replace with a real code from the backend once invitations exist.
-      inviteCode: `PLZ-${user.id.replace(/-/g, '').slice(0, 4).toUpperCase()}`,
-    };
-  }, [user]);
-}
+/** The signed-in user (profile from Supabase). */
+export const useMe = useMeFromServer;
 
 export function usePeople() {
-  return useStore().state.people;
+  return usePeopleFromServer();
 }
 
 export function usePartner() {
@@ -229,5 +193,5 @@ export function useInvitationForPlan(planId: string | undefined) {
 }
 
 export function useWishes() {
-  return useStore().state.wishes;
+  return useWishesFromServer();
 }

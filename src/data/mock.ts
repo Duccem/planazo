@@ -1,9 +1,9 @@
 import { addDays } from '@/lib/dates';
 import { brand as colors } from '@/theme/tokens';
 
-import type { Invitation, Me, Person, Plan, Wish } from './types';
+import type { Invitation, Plan } from './types';
 
-// Sample data so every screen has something to show. No backend yet.
+// Sample plans and invitations until they move to Supabase (profile, people and wishes already did).
 
 const at = (days: number, h: number, m = 0) => {
   const d = addDays(new Date(), days);
@@ -11,24 +11,6 @@ const at = (days: number, h: number, m = 0) => {
   return d.toISOString();
 };
 const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
-
-/** Placeholder identity, only used if there is no session (screens are protected, so normally never). */
-export const me: Me = {
-  id: 'me',
-  name: 'Tú',
-  initial: 'T',
-  color: colors.coral,
-  email: '',
-  memberSince: new Date().toISOString(),
-  inviteCode: 'PLZ-0000',
-};
-
-export const people: Person[] = [
-  { id: 'dani', name: 'Dani', initial: 'D', color: colors.sun, relation: 'pareja' },
-  { id: 'marta', name: 'Marta', initial: 'M', color: colors.indigo, relation: 'amigo' },
-  { id: 'sergio', name: 'Sergio', initial: 'S', color: colors.ink, relation: 'amigo' },
-  { id: 'ana', name: 'Ana', initial: 'A', color: '#3E9B6A', relation: 'amigo' },
-];
 
 export const plans: Plan[] = [
   // ---- Mine: scheduled
@@ -260,14 +242,3 @@ export const invitations: Invitation[] = [
   { id: 'i2', planId: 'r2', fromId: 'marta', note: 'Cuando queráis, sin fecha', myResponse: 'pendiente', sentAt: ago(26) },
 ];
 
-export const wishes: Wish[] = [
-  { id: 'w1', kind: 'regalo', title: 'Cámara instantánea', note: 'La de color menta', owner: 'yo', done: false, addedBy: 'me', createdAt: ago(100) },
-  { id: 'w2', kind: 'regalo', title: 'Vinilo de Rosalía', owner: 'pareja', done: false, addedBy: 'dani', createdAt: ago(60) },
-  { id: 'w3', kind: 'regalo', title: 'Zapatillas de trail', note: 'Talla 42', owner: 'pareja', done: true, addedBy: 'dani', createdAt: ago(300) },
-  { id: 'w4', kind: 'actividad', title: 'Ver la aurora boreal', owner: 'ambos', done: false, addedBy: 'me', createdAt: ago(500) },
-  { id: 'w5', kind: 'actividad', title: 'Saltar en paracaídas', owner: 'ambos', done: false, addedBy: 'dani', createdAt: ago(450) },
-  { id: 'w6', kind: 'actividad', title: 'Ir a un festival de música', owner: 'ambos', done: true, addedBy: 'me', createdAt: ago(800) },
-  { id: 'w7', kind: 'meta', title: 'Ahorrar para el viaje a Japón', note: '60% conseguido', owner: 'ambos', done: false, progress: 0.6, addedBy: 'me', createdAt: ago(700) },
-  { id: 'w8', kind: 'meta', title: 'Correr una media maratón juntos', owner: 'ambos', done: false, progress: 0.3, addedBy: 'dani', createdAt: ago(650) },
-  { id: 'w9', kind: 'meta', title: 'Una cita nueva al mes', owner: 'ambos', done: false, progress: 0.75, addedBy: 'me', createdAt: ago(900) },
-];

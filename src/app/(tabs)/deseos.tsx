@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, View } from 'react-native';
 
 import { TabScreen } from '@/components/screen';
 import { Icon } from '@/components/ui/icon';
 import { AvatarStack, Checkbox, EmptyState, IconButton, ProgressBar, Segmented, Tap } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
 import { wishKinds, wishOwners } from '@/data/meta';
+import { useSocialLoading } from '@/data/social';
 import { useActions, useMe, usePartner, useWishes } from '@/data/store';
 import type { Wish, WishKind } from '@/data/types';
 import { fonts, radius, space } from '@/theme/tokens';
@@ -21,6 +22,7 @@ export default function WishesScreen() {
   const me = useMe();
   const partner = usePartner();
   const wishes = useWishes();
+  const loading = useSocialLoading();
   const [filter, setFilter] = useState<Filter>('todo');
 
   const visible = filter === 'todo' ? wishes : wishes.filter((w) => w.kind === filter);
@@ -39,7 +41,9 @@ export default function WishesScreen() {
           icon="plus"
           label="Añadir deseo"
           tone="primary"
-          onPress={() => router.push(`/nuevo-deseo${filter !== 'todo' ? `?kind=${filter}` : ''}`)}
+          onPress={() =>
+            router.push({ pathname: '/nuevo-deseo', params: filter !== 'todo' ? { kind: filter } : {} })
+          }
         />
       }>
       {/* Summary */}
@@ -73,7 +77,9 @@ export default function WishesScreen() {
         ]}
       />
 
-      {visible.length === 0 ? (
+      {loading && wishes.length === 0 ? (
+        <ActivityIndicator color={colors.indigo} style={{ paddingVertical: space.xxl }} />
+      ) : visible.length === 0 ? (
         <EmptyState
           icon={filter === 'todo' ? 'gift' : wishKinds[filter].icon}
           title="Nada por aquí aún"
