@@ -66,7 +66,8 @@ export default function PlanDetailScreen() {
             <View style={styles.row}>
               <Avatar initial={plan.author.initial} color={plan.author.color} size={30} ring={colors.bg} />
               <Txt variant="label" color={colors.mute} style={{ flex: 1 }}>
-                Compartido por <Txt variant="label">{plan.author.name}</Txt> · {plan.likes} me gusta
+                {plan.isPublic ? 'Compartido por' : 'Plan de'} <Txt variant="label">{plan.author.name}</Txt>
+                {plan.isPublic ? ` · ${plan.likes} me gusta` : ''}
               </Txt>
             </View>
           ) : null}
@@ -210,7 +211,7 @@ export default function PlanDetailScreen() {
       {/* Floating back + like */}
       <View style={[styles.topBar, { top: insets.top + space.sm }]}>
         <IconButton icon="back" label="Volver" tone="white" onPress={() => router.back()} />
-        {isCommunity ? (
+        {isCommunity && plan.isPublic ? (
           <Tap
             accessibilityRole="button"
             accessibilityLabel="Me gusta"

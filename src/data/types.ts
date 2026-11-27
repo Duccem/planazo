@@ -17,8 +17,8 @@ export type Person = {
 export type Response = 'pendiente' | 'si' | 'quizas' | 'no';
 
 export type Author = {
+  id: string;
   name: string;
-  handle: string;
   initial: string;
   color: string;
 };
@@ -31,6 +31,7 @@ export type Author = {
  */
 export type Plan = {
   id: string;
+  ownerId: string;
   title: string;
   description: string;
   category: Category;
@@ -45,7 +46,7 @@ export type Plan = {
   inMyList: boolean;
   /** Shared publicly to the community. */
   isPublic: boolean;
-  /** Set for plans that come from the community. */
+  /** Who created it, when it isn't me (community plans, plans sent to me). */
   author?: Author;
   likes: number;
   likedByMe?: boolean;

@@ -15,7 +15,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplash } from '@/components/animated-splash';
 import { AuthProvider, useAuth } from '@/data/auth';
-import { SocialProvider } from '@/data/social';
 import { StoreProvider } from '@/data/store';
 import { ThemeProvider, useTheme } from '@/theme/theme';
 
@@ -50,11 +49,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <ThemeProvider>
-          <SocialProvider>
-            <StoreProvider>
-              <AppStack />
-            </StoreProvider>
-          </SocialProvider>
+          <StoreProvider>
+            <AppStack />
+          </StoreProvider>
         </ThemeProvider>
         <Splash />
       </AuthProvider>

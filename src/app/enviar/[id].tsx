@@ -50,7 +50,7 @@ export default function SendSheet() {
           icon="send"
           disabled={!selected.size}
           onPress={() => {
-            sendPlan(plan.id, [...selected]);
+            sendPlan(plan.id, [...selected], note.trim() || undefined);
             router.back();
           }}
         />

@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
+import { randomUUID } from 'expo-crypto';
 import { createContext, type ReactNode, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 
@@ -143,6 +144,7 @@ function UserSocialProvider({ userId, children }: { userId: string | undefined; 
       addWish(input) {
         if (!userId) return;
         const insert = {
+          id: randomUUID(),
           added_by: userId,
           for_id: forId(input.owner),
           kind: input.kind,
@@ -150,10 +152,10 @@ function UserSocialProvider({ userId, children }: { userId: string | undefined; 
           note: input.note ?? null,
           progress: input.kind === 'meta' ? 0 : null,
         };
-        // Shown right away with a temporary id; swapped for the server row when it returns.
-        const tempId = `tmp-${Date.now()}`;
+        // Shown right away; the id is generated here so later edits target the same row.
+        const tempId = insert.id;
         const now = new Date().toISOString();
-        setWishes((rows) => [{ ...insert, id: tempId, done: false, created_at: now, updated_at: now }, ...rows]);
+        setWishes((rows) => [{ ...insert, done: false, created_at: now, updated_at: now }, ...rows]);
         void supabase
           .from('wishes')
           .insert(insert)

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FeedCard, InvitationCard, NextPlanCard } from '@/components/plan-cards';
@@ -8,7 +8,7 @@ import { LogoMark } from '@/components/ui/logo';
 import { Chip, EmptyState, IconButton, SectionHeader } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
 import { categories, categoryList } from '@/data/meta';
-import { useCommunityFeed, useInvitations, useMe, useMyPlans } from '@/data/store';
+import { useCommunityFeed, useInvitations, useMe, useMyPlans, usePlansLoading } from '@/data/store';
 import type { Category } from '@/data/types';
 import { formatToday } from '@/lib/dates';
 import { GUTTER, space } from '@/theme/tokens';
@@ -24,6 +24,7 @@ export default function HomeScreen() {
   const { pending } = useInvitations();
   const { scheduled, someday, done } = useMyPlans();
   const feed = useCommunityFeed();
+  const loading = usePlansLoading();
   const [filter, setFilter] = useState<Filter>('para-ti');
 
   // "Para ti": rank community plans by how much you like that category, then popularity.
@@ -85,13 +86,23 @@ export default function HomeScreen() {
         <SectionHeader title="Tu próximo plan" action="Ver planes" onAction={() => router.navigate('/planes')} />
         {next ? (
           <NextPlanCard plan={next} />
-        ) : (
+        ) : loading ? (
+          <ActivityIndicator color={colors.indigo} style={{ paddingVertical: space.xl }} />
+        ) : someday.length ? (
           <EmptyState
             icon="calendar"
             title="Nada en el calendario"
-            body={`Tienes ${someday.length} planes para algún día. ¿Le ponemos fecha a uno?`}
+            body={`Tienes ${someday.length === 1 ? '1 plan' : `${someday.length} planes`} para algún día. ¿Le ponemos fecha?`}
             action="Ver mi lista"
             onAction={() => router.navigate('/planes')}
+          />
+        ) : (
+          <EmptyState
+            icon="sparkle"
+            title="Vuestro primer plan"
+            body="Apunta algo que os apetezca hacer juntos, o guarda una idea de la comunidad."
+            action="Crear plan"
+            onAction={() => router.push('/nuevo-plan')}
           />
         )}
       </View>
@@ -127,6 +138,8 @@ export default function HomeScreen() {
         <View style={[styles.pad, { gap: space.lg }]}>
           {ranked.length ? (
             ranked.map((p) => <FeedCard key={p.id} plan={p} />)
+          ) : loading ? (
+            <ActivityIndicator color={colors.indigo} style={{ paddingVertical: space.xl }} />
           ) : (
             <EmptyState
               icon="compass"

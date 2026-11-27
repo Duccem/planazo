@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { PlanRow } from '@/components/plan-cards';
 import { TabScreen } from '@/components/screen';
 import { EmptyState, IconButton, Segmented } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
-import { useMyPlans } from '@/data/store';
+import { useMyPlans, usePlansLoading } from '@/data/store';
 import type { Plan } from '@/data/types';
 import { space } from '@/theme/tokens';
 import { useColors } from '@/theme/theme';
@@ -52,6 +52,7 @@ export default function PlansScreen() {
   const colors = useColors();
   const router = useRouter();
   const { scheduled, someday, done } = useMyPlans();
+  const loading = usePlansLoading();
   const [tab, setTab] = useState<Tab>('agendados');
 
   const list = tab === 'agendados' ? scheduled : tab === 'algun-dia' ? someday : done;
@@ -72,7 +73,9 @@ export default function PlansScreen() {
         ]}
       />
 
-      {list.length === 0 ? (
+      {loading && list.length === 0 ? (
+        <ActivityIndicator color={colors.indigo} style={{ paddingVertical: space.xxl }} />
+      ) : list.length === 0 ? (
         <EmptyState
           {...empty[tab]}
           action={tab === 'hechos' ? undefined : 'Crear plan'}
