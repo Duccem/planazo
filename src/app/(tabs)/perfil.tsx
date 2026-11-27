@@ -103,6 +103,8 @@ export default function ProfileScreen() {
             ['bell', 'Notificaciones'],
             ['globe', 'Privacidad y comunidad'],
             ['settings', 'Ajustes', () => router.push('/ajustes')],
+            // TODO(auth): sign out for real; for now this only opens the auth screens.
+            ['lock', 'Cerrar sesión', () => router.push('/login')],
           ] as [IconName, string, (() => void)?][]
         ).map(([icon, label, onPress], i) => (
           <Tap key={label} onPress={onPress} accessibilityRole="button" style={[styles.listRow, i > 0 && styles.divider]}>

@@ -272,20 +272,45 @@ export function Segmented<T extends string>({
 export function Field({
   label,
   hint,
+  icon,
+  accessory,
   ...input
-}: TextInputProps & { label: string; hint?: string }) {
+}: TextInputProps & {
+  label: string;
+  hint?: string;
+  /** Leading icon inside the input. */
+  icon?: IconName;
+  /** Trailing element inside the input, e.g. a show-password toggle. */
+  accessory?: ReactNode;
+}) {
   const colors = useColors();
   const styles = useStyles();
+  const textInput = (
+    <TextInput
+      placeholderTextColor={colors.faint}
+      accessibilityLabel={label}
+      {...input}
+      style={[
+        styles.input,
+        input.multiline && { minHeight: 88, textAlignVertical: 'top' },
+        (icon || accessory) ? styles.inputBare : null,
+      ]}
+    />
+  );
   return (
     <View style={{ gap: space.xs + 2 }}>
       <Txt variant="label" color={colors.mute}>
         {label}
       </Txt>
-      <TextInput
-        placeholderTextColor={colors.faint}
-        {...input}
-        style={[styles.input, input.multiline && { minHeight: 88, textAlignVertical: 'top' }]}
-      />
+      {icon || accessory ? (
+        <View style={styles.inputRow}>
+          {icon ? <Icon name={icon} size={18} color={colors.faint} /> : null}
+          {textInput}
+          {accessory}
+        </View>
+      ) : (
+        textInput
+      )}
       {hint ? (
         <Txt variant="caption" color={colors.faint}>
           {hint}
@@ -458,6 +483,15 @@ const useStyles = makeStyles((colors) => ({
     paddingHorizontal: space.lg,
     paddingVertical: 14,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm + 2,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: space.lg,
+  },
+  inputBare: { flex: 1, backgroundColor: 'transparent', paddingHorizontal: 0, borderRadius: 0 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',

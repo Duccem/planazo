@@ -92,6 +92,7 @@ function AppStack() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" options={{ animation: 'fade_from_bottom', gestureEnabled: false }} />
         <Stack.Screen name="plan/[id]" />
         <Stack.Screen name="propuestas" />
         <Stack.Screen name="nuevo-plan" options={{ presentation: 'modal' }} />
