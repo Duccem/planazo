@@ -29,10 +29,17 @@ export default function ProfileScreen() {
       <View style={styles.meRow}>
         <Avatar initial={me.initial} color={me.color} size={68} ring={colors.lilac} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt variant="title">{me.name}</Txt>
-          <Txt variant="label" color={colors.mute}>
-            {me.handle}
+          <Txt variant="title" numberOfLines={1}>
+            {me.name}
           </Txt>
+          {me.email ? (
+            <Txt variant="label" color={colors.mute} numberOfLines={1}>
+              {me.email}
+            </Txt>
+          ) : null}
+          <View style={{ marginTop: space.xs }}>
+            <Chip label={`En Planazo desde ${memberSince(me.memberSince)}`} icon="heart" />
+          </View>
         </View>
       </View>
 
@@ -119,6 +126,14 @@ export default function ProfileScreen() {
       </View>
     </TabScreen>
   );
+}
+
+const monthYear = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric' });
+
+/** "noviembre de 2026" → "noviembre 2026". */
+function memberSince(iso: string) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? 'hoy' : monthYear.format(date).replace(' de ', ' ');
 }
 
 /** The root layout's guard sends the user to the login once the session is gone. */

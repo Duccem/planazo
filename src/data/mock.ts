@@ -12,12 +12,15 @@ const at = (days: number, h: number, m = 0) => {
 };
 const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
+/** Placeholder identity, only used if there is no session (screens are protected, so normally never). */
 export const me: Me = {
-  name: 'José',
-  initial: 'J',
+  id: 'me',
+  name: 'Tú',
+  initial: 'T',
   color: colors.coral,
-  handle: '@jose',
-  inviteCode: 'PLZ-48K2',
+  email: '',
+  memberSince: new Date().toISOString(),
+  inviteCode: 'PLZ-0000',
 };
 
 export const people: Person[] = [

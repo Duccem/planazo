@@ -1,7 +1,8 @@
 import { createContext, type ReactNode, use, useMemo, useReducer } from 'react';
 
+import { useAuth } from './auth';
 import * as mock from './mock';
-import type { Invitation, Person, Plan, Response, Wish } from './types';
+import type { Invitation, Me, Person, Plan, Response, Wish } from './types';
 
 // In-memory app state seeded with sample data. Swap for a real backend later:
 // screens only talk to the hooks exported here.
@@ -154,7 +155,27 @@ export function useActions() {
 
 /* ---------- Selectors ---------- */
 
-export const useMe = () => mock.me;
+/** The signed-in user, from the Supabase session. */
+export function useMe(): Me {
+  const user = useAuth().session?.user;
+  return useMemo(() => {
+    if (!user) return mock.me;
+    const email = user.email ?? '';
+    const fromMeta = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name.trim() : '';
+    const fromEmail = email.split('@')[0] ?? '';
+    const name = fromMeta || (fromEmail ? fromEmail[0].toUpperCase() + fromEmail.slice(1) : mock.me.name);
+    return {
+      id: user.id,
+      name,
+      initial: name[0]?.toUpperCase() ?? mock.me.initial,
+      color: mock.me.color,
+      email,
+      memberSince: user.created_at,
+      // TODO(invites): replace with a real code from the backend once invitations exist.
+      inviteCode: `PLZ-${user.id.replace(/-/g, '').slice(0, 4).toUpperCase()}`,
+    };
+  }, [user]);
+}
 
 export function usePeople() {
   return useStore().state.people;

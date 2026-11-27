@@ -80,9 +80,12 @@ export type Wish = {
 };
 
 export type Me = {
+  id: string;
   name: string;
   initial: string;
   color: string;
-  handle: string;
+  email: string;
+  /** ISO date the account was created. */
+  memberSince: string;
   inviteCode: string;
 };
