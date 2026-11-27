@@ -70,6 +70,19 @@ export function useMyPlans() {
   }, [plans]);
 }
 
+/** Plans I created and share with the community, most liked first. */
+export function useMySharedPlans() {
+  const { plans } = usePlansState();
+  const meId = useMe().id;
+  return useMemo(
+    () =>
+      plans
+        .filter((p) => p.isPublic && p.ownerId === meId)
+        .sort((a, b) => b.likes - a.likes || b.createdAt.localeCompare(a.createdAt)),
+    [plans, meId],
+  );
+}
+
 /**
  * Paginated community feed: public plans by other people, newest first, in pages of FEED_PAGE.
  * `pages` keeps the load order so a UI can rank within a page without reshuffling what's on screen.

@@ -214,7 +214,7 @@ export default function ProfileScreen() {
         {(
           [
             ['bell', 'Notificaciones', () => router.push('/notificaciones')],
-            ['globe', 'Privacidad y comunidad'],
+            ['globe', 'Privacidad y comunidad', () => router.push('/privacidad')],
             ['settings', 'Ajustes', () => router.push('/ajustes')],
             ['lock', 'Cerrar sesión', () => confirmSignOut(signOut)],
           ] as [IconName, string, (() => void)?][]
