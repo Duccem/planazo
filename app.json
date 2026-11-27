@@ -8,7 +8,6 @@
     "scheme": "planazo",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.lumen.planazo"
     },
     "android": {
