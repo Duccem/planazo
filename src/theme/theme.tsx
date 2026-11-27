@@ -19,9 +19,12 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** Light until the user picks something else in Ajustes (including "Automático"). */
+const DEFAULT_PREFERENCE: ThemePreference = 'light';
+
 function readPreference(): ThemePreference {
   const saved = preferenceStorage.get(STORAGE_KEY);
-  return saved === 'light' || saved === 'dark' ? saved : 'system';
+  return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : DEFAULT_PREFERENCE;
 }
 
 /** Tells native UI (sheets, alerts, keyboard, switches) which scheme to draw. */
