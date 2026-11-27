@@ -6,7 +6,7 @@ import type { Tables } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 
 import { useAuth } from './auth';
-import type { Invitation, Plan, PriceTier, Response } from './types';
+import type { Category, Invitation, Plan, PriceTier, Response } from './types';
 
 /*
  * Plans, my list, likes and invitations, backed by Supabase.
@@ -35,7 +35,22 @@ type PlanRow = Pick<
   | 'created_at'
 > & { owner: Pick<Tables<'profiles'>, 'id' | 'name' | 'color'> | null };
 
-type State = { plans: Plan[]; invitations: Invitation[]; loading: boolean };
+/** Community feed page size. */
+export const FEED_PAGE = 20;
+
+/** The community feed: ids in load order (newest first), one category or all. */
+export type FeedState = {
+  category: Category | null;
+  ids: string[];
+  hasMore: boolean;
+  loadingMore: boolean;
+  /** Last page failed to load; the UI offers a retry. */
+  error: boolean;
+};
+
+type State = { plans: Plan[]; invitations: Invitation[]; feed: FeedState; loading: boolean };
+
+const initialFeed: FeedState = { category: null, ids: [], hasMore: true, loadingMore: true, error: false };
 
 export type NewPlanInput = Pick<
   Plan,
@@ -53,6 +68,10 @@ type PlanActions = {
   sendPlan: (id: string, personIds: string[], note?: string) => void;
   respond: (invitationId: string, response: Response) => void;
   refresh: () => Promise<void>;
+  /** Load the next feed page (no-op while loading or at the end). */
+  loadMoreFeed: () => void;
+  /** Switch the feed to one category (or all) and load its first page. */
+  setFeedCategory: (category: Category | null) => void;
 };
 
 const PlansContext = createContext<(State & { actions: PlanActions }) | null>(null);
@@ -96,23 +115,36 @@ export function PlansProvider({ children }: { children: ReactNode }) {
 }
 
 function UserPlansProvider({ userId, children }: { userId: string | undefined; children: ReactNode }) {
-  const [state, setState] = useState<State>({ plans: [], invitations: [], loading: true });
+  const [state, setState] = useState<State>({ plans: [], invitations: [], feed: initialFeed, loading: true });
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
+  /**
+   * One page of public plans by other people, newest first. Keyset pagination on
+   * (created_at, id): stable while new plans are published, unlike an offset.
+   */
+  const fetchFeed = useCallback(
+    (category: Category | null, after: Plan | undefined, limit: number) => {
+      let q = supabase.from('plans').select(PLAN_COLUMNS).eq('is_public', true).neq('owner_id', userId!);
+      if (category) q = q.eq('category', category);
+      if (after) {
+        q = q.or(`created_at.lt."${after.createdAt}",and(created_at.eq."${after.createdAt}",id.lt.${after.id})`);
+      }
+      return q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit);
+    },
+    [userId],
+  );
+
   const refresh = useCallback(async () => {
     if (!userId) return;
+    // Reload the feed for the current category, as far as it was scrolled.
+    const feedCategory = stateRef.current.feed.category;
+    const feedLimit = Math.max(FEED_PAGE, stateRef.current.feed.ids.length);
     const [mine, feed, received, sent, likes] = await Promise.all([
       supabase.from('my_plans').select(`scheduled_at, done, plan:plans(${PLAN_COLUMNS})`).eq('user_id', userId),
-      supabase
-        .from('plans')
-        .select(PLAN_COLUMNS)
-        .eq('is_public', true)
-        .neq('owner_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50),
+      fetchFeed(feedCategory, undefined, feedLimit),
       supabase
         .from('invitations')
         .select(`id, plan_id, from_id, note, response, sent_at, plan:plans(${PLAN_COLUMNS})`)
@@ -124,8 +156,8 @@ function UserPlansProvider({ userId, children }: { userId: string | undefined; c
 
     const failed = [mine, feed, received, sent, likes].find((r) => r.error);
     if (failed?.error) {
-      // Keep what we had; the next refresh (foreground, realtime) will try again.
-      setState((s) => ({ ...s, loading: false }));
+      // Keep what we had; the next refresh (foreground, realtime, pull) will try again.
+      setState((s) => ({ ...s, loading: false, feed: { ...s.feed, loadingMore: false } }));
       return;
     }
 
@@ -154,8 +186,21 @@ function UserPlansProvider({ userId, children }: { userId: string | undefined; c
       }
     }
 
-    setState({
+    setState((prev) => {
+      // If the category changed while this was loading, keep the newer feed (and its plans).
+      const sameFeed = prev.feed.category === feedCategory;
+      if (!sameFeed) {
+        for (const id of prev.feed.ids) {
+          const kept = prev.plans.find((p) => p.id === id);
+          if (kept && !byId.has(id)) byId.set(id, kept);
+        }
+      }
+      const feedIds = (feed.data ?? []).map((r) => r.id);
+      return {
       plans: [...byId.values()],
+      feed: sameFeed
+        ? { ...prev.feed, ids: feedIds, hasMore: feedIds.length === feedLimit, loadingMore: false, error: false }
+        : prev.feed,
       invitations: (received.data ?? [])
         .filter((i) => i.plan)
         .map((i) => ({
@@ -167,8 +212,45 @@ function UserPlansProvider({ userId, children }: { userId: string | undefined; c
           sentAt: i.sent_at,
         })),
       loading: false,
+      };
     });
-  }, [userId]);
+  }, [userId, fetchFeed]);
+
+  /** Fetch a feed page, attach my likes, and merge it if the category is still current. */
+  const loadFeedPage = useCallback(
+    async (category: Category | null, after: Plan | undefined) => {
+      const page = await fetchFeed(category, after, FEED_PAGE);
+      const ids = (page.data ?? []).map((r) => r.id);
+      const likes = ids.length
+        ? await supabase.from('plan_likes').select('plan_id').eq('user_id', userId!).in('plan_id', ids)
+        : { data: [], error: null };
+
+      setState((s) => {
+        if (s.feed.category !== category) return s; // switched filter meanwhile
+        if (page.error || likes.error) return { ...s, feed: { ...s.feed, loadingMore: false, error: true } };
+        const liked = new Set(likes.data?.map((l) => l.plan_id));
+        const known = new Set(s.plans.map((p) => p.id));
+        // Plans already loaded (e.g. in my list) keep their richer state.
+        const fresh = (page.data as PlanRow[])
+          .filter((r) => !known.has(r.id))
+          .map((r) => ({ ...toPlan(r, userId!), likedByMe: liked.has(r.id) }));
+        const base = after ? s.feed.ids : [];
+        const seen = new Set(base);
+        return {
+          ...s,
+          plans: [...s.plans, ...fresh],
+          feed: {
+            ...s.feed,
+            ids: [...base, ...ids.filter((id) => !seen.has(id))],
+            hasMore: ids.length === FEED_PAGE,
+            loadingMore: false,
+            error: false,
+          },
+        };
+      });
+    },
+    [fetchFeed, userId],
+  );
 
   // First load once realtime is subscribed (and again on every reconnect, or if it's unavailable).
   useEffect(() => {
@@ -216,6 +298,25 @@ function UserPlansProvider({ userId, children }: { userId: string | undefined; c
 
     return {
       refresh,
+
+      loadMoreFeed() {
+        const { feed, plans } = stateRef.current;
+        if (feed.loadingMore || !feed.hasMore) return;
+        const last = plans.find((p) => p.id === feed.ids[feed.ids.length - 1]);
+        const next = { ...feed, loadingMore: true, error: false };
+        // Update the ref now so fast repeated end-reached events don't fire duplicate requests.
+        stateRef.current = { ...stateRef.current, feed: next };
+        setState((s) => ({ ...s, feed: { ...s.feed, loadingMore: true, error: false } }));
+        void loadFeedPage(feed.category, last);
+      },
+
+      setFeedCategory(category) {
+        if (stateRef.current.feed.category === category) return;
+        const next: FeedState = { category, ids: [], hasMore: true, loadingMore: true, error: false };
+        stateRef.current = { ...stateRef.current, feed: next };
+        setState((s) => ({ ...s, feed: next }));
+        void loadFeedPage(category, undefined);
+      },
 
       addPlan(input) {
         const id = randomUUID();
@@ -353,7 +454,7 @@ function UserPlansProvider({ userId, children }: { userId: string | undefined; c
         persist(() => supabase.rpc('respond_to_invitation', { invitation: invitationId, answer: response }));
       },
     };
-  }, [userId, refresh]);
+  }, [userId, refresh, loadFeedPage]);
 
   const value = useMemo(() => ({ ...state, actions }), [state, actions]);
   return <PlansContext value={value}>{children}</PlansContext>;

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 
-import { PlansProvider, usePlansState } from './plans';
+import { FEED_PAGE, PlansProvider, usePlansState } from './plans';
 import {
   SocialProvider,
   useMeFromServer,
@@ -9,6 +9,7 @@ import {
   useSocialActions,
   useWishesFromServer,
 } from './social';
+import type { Plan } from './types';
 
 export type { NewPlanInput } from './plans';
 
@@ -69,13 +70,33 @@ export function useMyPlans() {
   }, [plans]);
 }
 
-/** Public plans by other people, newest first. */
+/**
+ * Paginated community feed: public plans by other people, newest first, in pages of FEED_PAGE.
+ * `pages` keeps the load order so a UI can rank within a page without reshuffling what's on screen.
+ */
 export function useCommunityFeed() {
-  const { plans } = usePlansState();
-  return useMemo(
-    () => plans.filter((p) => p.isPublic && p.author).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [plans],
-  );
+  const { plans, feed, actions } = usePlansState();
+  const pages = useMemo(() => {
+    const byId = new Map(plans.map((p) => [p.id, p]));
+    const list = feed.ids
+      .map((id) => byId.get(id))
+      // A plan made private or deleted since it loaded drops out.
+      .filter((p): p is Plan => !!p && p.isPublic && !!p.author);
+    const out: Plan[][] = [];
+    for (let i = 0; i < list.length; i += FEED_PAGE) out.push(list.slice(i, i + FEED_PAGE));
+    return out;
+  }, [plans, feed.ids]);
+
+  return {
+    pages,
+    category: feed.category,
+    hasMore: feed.hasMore,
+    loadingMore: feed.loadingMore,
+    error: feed.error,
+    loadMore: actions.loadMoreFeed,
+    setCategory: actions.setFeedCategory,
+    refresh: actions.refresh,
+  };
 }
 
 export function useInvitations() {
