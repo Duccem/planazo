@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplash } from '@/components/animated-splash';
+import { AuthProvider, useAuth } from '@/data/auth';
 import { StoreProvider } from '@/data/store';
 import { ThemeProvider, useTheme } from '@/theme/theme';
 
@@ -42,27 +43,38 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  const [showSplash, setShowSplash] = useState(true);
-  // Hide the native splash only once the animated overlay is on screen, so nothing flashes.
-  const hideNativeSplash = useCallback(() => SplashScreen.hide(), []);
-  const finishSplash = useCallback(() => setShowSplash(false), []);
-
   if (!loaded && !error) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <StoreProvider>
-          <AppStack />
-        </StoreProvider>
-      </ThemeProvider>
-      {showSplash && <AnimatedSplash onReady={hideNativeSplash} onFinish={finishSplash} />}
+      <AuthProvider>
+        <ThemeProvider>
+          <StoreProvider>
+            <AppStack />
+          </StoreProvider>
+        </ThemeProvider>
+        <Splash />
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
 
+/** Keeps the native splash up until the stored session is known, then plays the animated one. */
+function Splash() {
+  const { loading } = useAuth();
+  const [done, setDone] = useState(false);
+  // Hide the native splash only once the animated overlay is on screen, so nothing flashes.
+  const hideNativeSplash = useCallback(() => SplashScreen.hide(), []);
+  const finish = useCallback(() => setDone(true), []);
+
+  if (loading || done) return null;
+  return <AnimatedSplash onReady={hideNativeSplash} onFinish={finish} />;
+}
+
 function AppStack() {
   const { scheme, colors } = useTheme();
+  const { session, loading } = useAuth();
+  const signedIn = !!session;
 
   const navTheme = useMemo(() => {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -87,19 +99,28 @@ function AppStack() {
 
   const sheet = sheetOptions(colors.bg);
 
+  // Until the stored session is read, rendering the guards would bounce through the login screen.
+  if (loading) return null;
+
   return (
     <NavigationThemeProvider value={navTheme}>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {/* Auth screens sit on the indigo hero, so they always use light status bar content. */}
+      <StatusBar style={!signedIn || scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(auth)" options={{ animation: 'fade_from_bottom', gestureEnabled: false }} />
-        <Stack.Screen name="plan/[id]" />
-        <Stack.Screen name="propuestas" />
-        <Stack.Screen name="nuevo-plan" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="agendar/[id]" options={sheet} />
-        <Stack.Screen name="enviar/[id]" options={sheet} />
-        <Stack.Screen name="nuevo-deseo" options={sheet} />
-        <Stack.Screen name="ajustes" options={sheet} />
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="plan/[id]" />
+          <Stack.Screen name="propuestas" />
+          <Stack.Screen name="nuevo-plan" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="agendar/[id]" options={sheet} />
+          <Stack.Screen name="enviar/[id]" options={sheet} />
+          <Stack.Screen name="nuevo-deseo" options={sheet} />
+          <Stack.Screen name="ajustes" />
+        </Stack.Protected>
+        {/* Without a session every route above redirects here. */}
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+        </Stack.Protected>
       </Stack>
     </NavigationThemeProvider>
   );

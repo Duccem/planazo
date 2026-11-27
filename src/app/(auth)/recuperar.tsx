@@ -2,10 +2,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AuthLink, AuthScreen } from '@/components/auth';
+import { AuthLink, AuthScreen, FormError } from '@/components/auth';
 import { Icon } from '@/components/ui/icon';
 import { Button, Field } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
+import { useAuth } from '@/data/auth';
 import { fonts, radius, space } from '@/theme/tokens';
 import { makeStyles, useColors } from '@/theme/theme';
 
@@ -13,15 +14,24 @@ export default function RecoverPasswordScreen() {
   const colors = useColors();
   const styles = useStyles();
   const router = useRouter();
+  const { resetPassword } = useAuth();
   const params = useLocalSearchParams<{ email?: string }>();
   const [email, setEmail] = useState(params.email ?? '');
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const valid = email.includes('@');
+  const valid = email.includes('@') && !submitting;
   const backToLogin = () => (router.canGoBack() ? router.back() : router.replace('/login'));
 
-  // TODO(auth): send the reset email with Supabase.
-  const send = () => setSent(true);
+  const send = async () => {
+    setSubmitting(true);
+    setError(null);
+    const result = await resetPassword(email);
+    setSubmitting(false);
+    setError(result.error);
+    if (!result.error) setSent(true);
+  };
 
   if (sent) {
     return (
@@ -45,6 +55,7 @@ export default function RecoverPasswordScreen() {
             Mira también en la carpeta de spam.
           </Txt>
         </View>
+        <FormError message={error} />
         <Button label="Volver a iniciar sesión" onPress={backToLogin} />
         <Button label="Cambiar correo" tone="ghost" onPress={() => setSent(false)} />
       </AuthScreen>
@@ -73,7 +84,8 @@ export default function RecoverPasswordScreen() {
         autoFocus
         onSubmitEditing={valid ? send : undefined}
       />
-      <Button label="Enviar enlace" icon="send" disabled={!valid} onPress={send} />
+      <FormError message={error} />
+      <Button label="Enviar enlace" icon="send" disabled={!valid} loading={submitting} onPress={send} />
     </AuthScreen>
   );
 }

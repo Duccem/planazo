@@ -2,9 +2,18 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AuthLink, AuthScreen, OrDivider, PasswordField, SocialButtons } from '@/components/auth';
+import {
+  AuthLink,
+  AuthScreen,
+  FormError,
+  FormNotice,
+  OrDivider,
+  PasswordField,
+  SocialButtons,
+} from '@/components/auth';
 import { Button, Checkbox, Field, Tap } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
+import { useAuth } from '@/data/auth';
 import { fonts, space } from '@/theme/tokens';
 import { useColors } from '@/theme/theme';
 
@@ -13,17 +22,35 @@ const MIN_PASSWORD = 8;
 export default function SignUpScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accepted, setAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const shortPassword = password.length > 0 && password.length < MIN_PASSWORD;
   const canSubmit =
-    name.trim().length > 1 && email.includes('@') && password.length >= MIN_PASSWORD && accepted;
+    name.trim().length > 1 &&
+    email.includes('@') &&
+    password.length >= MIN_PASSWORD &&
+    accepted &&
+    !submitting;
 
-  // TODO(auth): create the account with Supabase; for now just go back into the app.
-  const submit = () => router.dismissTo('/');
+  // If the project auto-confirms, a session arrives and the root guard opens the app.
+  const submit = async () => {
+    setSubmitting(true);
+    setError(null);
+    setNotice(null);
+    const result = await signUp(name, email, password);
+    setSubmitting(false);
+    setError(result.error);
+    if (result.needsConfirmation) {
+      setNotice(`Te hemos enviado un correo a ${email.trim()}. Confírmalo y luego inicia sesión.`);
+    }
+  };
 
   const linkStyle = { fontFamily: fonts.bold, fontSize: 13 };
 
@@ -90,7 +117,9 @@ export default function SignUpScreen() {
         </View>
       </Tap>
 
-      <Button label="Crear cuenta" disabled={!canSubmit} onPress={submit} />
+      <FormError message={error} />
+      <FormNotice message={notice} />
+      <Button label="Crear cuenta" disabled={!canSubmit} loading={submitting} onPress={submit} />
       <OrDivider />
       <SocialButtons />
     </AuthScreen>

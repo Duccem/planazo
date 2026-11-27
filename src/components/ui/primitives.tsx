@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   type PressableProps,
   type StyleProp,
@@ -46,6 +47,7 @@ export function Button({
   disabled,
   style,
   compact,
+  loading,
 }: {
   label: string;
   onPress?: () => void;
@@ -54,6 +56,8 @@ export function Button({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
+  /** Shows a spinner and blocks presses. */
+  loading?: boolean;
 }) {
   const colors = useColors();
   const styles = useStyles();
@@ -61,8 +65,8 @@ export function Button({
   return (
     <Tap
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
+      disabled={disabled || loading}
       onPress={onPress}
       style={[
         styles.button,
@@ -71,7 +75,11 @@ export function Button({
         disabled && { opacity: 0.45 },
         style,
       ]}>
-      {icon ? <Icon name={icon} size={compact ? 16 : 18} color={t.fg} strokeWidth={2.4} /> : null}
+      {loading ? (
+        <ActivityIndicator size="small" color={t.fg} />
+      ) : icon ? (
+        <Icon name={icon} size={compact ? 16 : 18} color={t.fg} strokeWidth={2.4} />
+      ) : null}
       <Txt variant="button" color={t.fg} style={compact && { fontSize: 13 }}>
         {label}
       </Txt>

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { type ReactNode, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, type TextInputProps, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, type TextInputProps, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { brand, fonts, GUTTER, radius, space } from '@/theme/tokens';
@@ -118,6 +118,36 @@ export function PasswordField(props: TextInputProps & { label: string; hint?: st
   );
 }
 
+/** Error banner above the submit button. */
+export function FormError({ message }: { message: string | null }) {
+  const colors = useColors();
+  const styles = useStyles();
+  if (!message) return null;
+  return (
+    <View style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+      <Icon name="x" size={16} color={colors.coralDeep} strokeWidth={2.6} />
+      <Txt variant="label" color={colors.coralDeep} style={{ flex: 1 }}>
+        {message}
+      </Txt>
+    </View>
+  );
+}
+
+/** Informative banner, e.g. "check your inbox". */
+export function FormNotice({ message }: { message: string | null }) {
+  const colors = useColors();
+  const styles = useStyles();
+  if (!message) return null;
+  return (
+    <View style={[styles.error, { backgroundColor: colors.mint }]} accessibilityLiveRegion="polite">
+      <Icon name="mail" size={16} color={colors.mintDeep} strokeWidth={2.4} />
+      <Txt variant="label" color={colors.mintDeep} style={{ flex: 1 }}>
+        {message}
+      </Txt>
+    </View>
+  );
+}
+
 /** "o" separator between the main form and social sign-in. */
 export function OrDivider() {
   const colors = useColors();
@@ -133,14 +163,13 @@ export function OrDivider() {
   );
 }
 
-/** Social sign-in buttons. UI only for now. */
-export function SocialButtons({ onPress }: { onPress?: (provider: 'apple' | 'google') => void }) {
+/** Social sign-in buttons. Not wired to Supabase yet. */
+export function SocialButtons() {
+  const soon = () => Alert.alert('Muy pronto', 'Por ahora entra con tu correo y contraseña.');
   return (
     <View style={{ flexDirection: 'row', gap: space.md }}>
-      {Platform.OS !== 'android' ? (
-        <Button label="Apple" tone="ghost" style={{ flex: 1 }} onPress={() => onPress?.('apple')} />
-      ) : null}
-      <Button label="Google" tone="ghost" style={{ flex: 1 }} onPress={() => onPress?.('google')} />
+      {Platform.OS !== 'android' ? <Button label="Apple" tone="ghost" style={{ flex: 1 }} onPress={soon} /> : null}
+      <Button label="Google" tone="ghost" style={{ flex: 1 }} onPress={soon} />
     </View>
   );
 }
@@ -183,6 +212,15 @@ const useStyles = makeStyles((colors) => ({
     gap: space.xl,
   },
   footer: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingTop: space.sm },
+  error: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm + 2,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.coralSoft,
+  },
   divider: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.line },
 }));

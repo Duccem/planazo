@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 
 import { TabScreen } from '@/components/screen';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { LogoMark } from '@/components/ui/logo';
 import { Avatar, Button, Chip, Tap } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
+import { useAuth } from '@/data/auth';
 import { useMe, useMyPlans, usePeople, useWishes } from '@/data/store';
 import { radius, space } from '@/theme/tokens';
 import { makeStyles, useColors } from '@/theme/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const colors = useColors();
   const styles = useStyles();
   const me = useMe();
@@ -103,8 +105,7 @@ export default function ProfileScreen() {
             ['bell', 'Notificaciones'],
             ['globe', 'Privacidad y comunidad'],
             ['settings', 'Ajustes', () => router.push('/ajustes')],
-            // TODO(auth): sign out for real; for now this only opens the auth screens.
-            ['lock', 'Cerrar sesión', () => router.push('/login')],
+            ['lock', 'Cerrar sesión', () => confirmSignOut(signOut)],
           ] as [IconName, string, (() => void)?][]
         ).map(([icon, label, onPress], i) => (
           <Tap key={label} onPress={onPress} accessibilityRole="button" style={[styles.listRow, i > 0 && styles.divider]}>
@@ -118,6 +119,26 @@ export default function ProfileScreen() {
       </View>
     </TabScreen>
   );
+}
+
+/** The root layout's guard sends the user to the login once the session is gone. */
+function confirmSignOut(signOut: () => Promise<{ error: string | null }>) {
+  // react-native-web's Alert has no buttons.
+  if (Platform.OS === 'web') {
+    if (globalThis.confirm?.('¿Cerrar sesión?')) void signOut();
+    return;
+  }
+  Alert.alert('¿Cerrar sesión?', 'Tendrás que volver a entrar con tu correo y contraseña.', [
+    { text: 'Cancelar', style: 'cancel' },
+    {
+      text: 'Cerrar sesión',
+      style: 'destructive',
+      onPress: async () => {
+        const { error } = await signOut();
+        if (error) Alert.alert('No se pudo cerrar sesión', error);
+      },
+    },
+  ]);
 }
 
 function Stat({ value, label }: { value: number; label: string }) {

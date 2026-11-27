@@ -1,11 +1,12 @@
-import { View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Sheet } from '@/components/sheet';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { FieldLabel, Tap } from '@/components/ui/primitives';
+import { FieldLabel, IconButton, Tap } from '@/components/ui/primitives';
 import { Txt } from '@/components/ui/text';
 import { makeStyles, type ThemePreference, useColors, useTheme } from '@/theme/theme';
-import { radius, space } from '@/theme/tokens';
+import { GUTTER, radius, space } from '@/theme/tokens';
 
 const OPTIONS: { value: ThemePreference; label: string; body: string; icon: IconName }[] = [
   { value: 'system', label: 'Automático', body: 'Igual que tu móvil', icon: 'phone' },
@@ -13,13 +14,29 @@ const OPTIONS: { value: ThemePreference; label: string; body: string; icon: Icon
   { value: 'dark', label: 'Oscuro', body: 'Fondo de noche', icon: 'moon' },
 ];
 
-export default function SettingsSheet() {
+export default function SettingsScreen() {
   const { preference, setPreference } = useTheme();
   const colors = useColors();
   const styles = useStyles();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <Sheet title="Ajustes">
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{
+        paddingTop: insets.top + space.md,
+        paddingBottom: insets.bottom + space.xxl,
+        paddingHorizontal: GUTTER,
+        gap: space.xl,
+      }}>
+      <View style={styles.header}>
+        <IconButton icon="back" label="Volver" onPress={() => router.back()} />
+        <Txt variant="title" style={{ flex: 1 }}>
+          Ajustes
+        </Txt>
+      </View>
+
       <View style={{ gap: space.sm + 2 }}>
         <FieldLabel>Apariencia</FieldLabel>
         <View style={styles.options} accessibilityRole="radiogroup">
@@ -48,11 +65,12 @@ export default function SettingsSheet() {
           En automático, Planazo cambia entre claro y oscuro cuando lo hace tu móvil.
         </Txt>
       </View>
-    </Sheet>
+    </ScrollView>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
+  header: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   options: { flexDirection: 'row', gap: space.sm },
   option: {
     flex: 1,
