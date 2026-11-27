@@ -313,6 +313,35 @@ export type Database = {
         }
         Relationships: []
       }
+      push_tokens: {
+        Row: {
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishes: {
         Row: {
           added_by: string
@@ -372,6 +401,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_push_secret: { Args: { secret: string }; Returns: boolean }
       redeem_invite_code: {
         Args: {
           as_relation?: Database["public"]["Enums"]["relation"]
@@ -392,6 +422,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      register_push_token: {
+        Args: { platform: string; token: string }
+        Returns: undefined
       }
       remove_connection: { Args: { other: string }; Returns: undefined }
       respond_to_invitation: {
@@ -416,6 +450,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      unregister_push_token: { Args: { token: string }; Returns: undefined }
     }
     Enums: {
       invitation_response: "pendiente" | "si" | "quizas" | "no"

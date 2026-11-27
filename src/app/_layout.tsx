@@ -18,6 +18,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AnimatedSplash } from '@/components/animated-splash';
 import { AuthProvider, useAuth } from '@/data/auth';
 import { StoreProvider } from '@/data/store';
+import { usePushNotifications } from '@/lib/push';
 import { ThemeProvider, useTheme } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -89,6 +90,8 @@ function AppStack() {
   const { scheme, colors } = useTheme();
   const { session, loading } = useAuth();
   const signedIn = !!session;
+  // Registers this device and opens the screen of a tapped notification (only once signed in).
+  usePushNotifications(signedIn && !loading);
 
   const navTheme = useMemo(() => {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;

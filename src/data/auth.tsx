@@ -2,6 +2,7 @@ import type { AuthError, Session } from '@supabase/supabase-js';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 import { getGoogleIdToken, signOutGoogle } from '@/lib/google-auth';
+import { unregisterPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
 type Result = { error: string | null };
@@ -111,6 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: describe(error) };
       },
       signOut: async () => {
+        // Stop pushes to this device while the session can still authorise the call.
+        await unregisterPush();
         const [{ error }] = await Promise.all([supabase.auth.signOut(), signOutGoogle()]);
         return { error: describe(error) };
       },
